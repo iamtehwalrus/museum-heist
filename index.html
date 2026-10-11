@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="A logic puzzle. Watch ten steps in a museum and work out who the guards and the burglar are.">
+<title>Museum heist</title>
+<style>
+:root{--bg:#faf8f4;--ink:#22252b;--mut:#6b7280;--line:#d9d4c8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{max-width:560px;margin:0 auto;padding:6px 14px 48px}
+/* The top of the page is kept short so that the map and everything needed to work on it fit on a phone screen
+   with the browser's own bars showing. */
+.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 10px;margin-bottom:4px}
+h1{font-size:17px;line-height:24px;margin:0}
+#clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;flex:none;align-self:center;min-width:46px;text-align:right}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.setup{display:flex;gap:8px;margin-bottom:6px}
+.setup select,.setup button{height:38px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:0 8px;min-width:0;flex:1}
+.setup button{font-weight:700;background:var(--ink);color:#fff;border-color:var(--ink)}
+#brief{font-size:13px;line-height:24px}
+/* The map is as wide as the page unless that would push the note buttons off the screen; then it shrinks to fit.
+   312px is the height of everything else from the title down to the note buttons. svh = the screen with the
+   browser's bars showing. */
+svg#map{width:100%;height:auto;display:block;margin:0 auto;background:#4a4e57;border-radius:8px}
+svg#map{width:min(100%,calc(max(260px,100vh - 312px)*0.909))}
+svg#map{width:min(100%,calc(max(260px,100svh - 312px)*0.909))}
+.room{fill:#f1ede3;stroke:#4a4e57;stroke-width:3}
+.street{fill:#c9ced8}
+.rname{font-size:8.5px;fill:#8a8577;font-weight:600;text-anchor:middle}
+.dlab{font-size:7px;fill:#d7dbe3;font-weight:600}
+.door{stroke:#d8a84e;stroke-width:6;stroke-linecap:round}
+.mapwrap{position:relative}
+.dot{transition:transform .35s ease,opacity .25s;cursor:pointer}
+.dot .body{stroke:#1b1d22;stroke-width:1.3}
+.dot .hit{fill:transparent}
+.dot.sel .body{stroke:#fff;stroke-width:2.2}
+.dot .mark{fill:none;stroke-width:2.6;stroke-linecap:butt}
+.dlabel{font-size:9.5px;font-weight:700;text-anchor:middle;fill:#111;pointer-events:none}
+#pop{margin:4px 0 8px;min-height:90px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.tint{fill:none;pointer-events:none}
+#people{display:flex;gap:3px;margin:3px 0}
+#people button{flex:1;min-width:0;height:44px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 0 0;line-height:1}
+#people button .chip{width:24px;height:24px;font-size:13px}
+#people button small{display:block;font-size:9.5px;margin-top:3px;white-space:nowrap}
+#people button.now{outline:3px solid #2f6fde;outline-offset:1px}
+#reportText{margin:0 0 8px;font-size:15px}
+.pbtn:disabled{opacity:.6}
+#result ul{margin:6px 0;padding-left:20px;font-size:15px}
+#pop .who{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.25;min-height:30px;color:var(--mut);margin:0 2px 6px}
+#pop .who button{margin-left:auto;border:0;background:none;font-size:20px;line-height:1;width:32px;height:28px;color:var(--mut)}
+#pop .roles3{display:flex;gap:5px}
+.pbtn{flex:1;min-width:0;height:40px;border:2px solid var(--line);border-radius:8px;background:#faf8f4;font-size:13px;font-weight:700;padding:0;line-height:1.15}
+.pbtn small{display:block;font-size:11px;font-weight:400}
+.pbtn.no{color:#a3a09a;text-decoration:line-through;background:#f1efea}
+.pbtn.no small{text-decoration:none}
+.pbtn.yes{color:#fff}
+.key{font-size:13px;line-height:1.35;color:var(--mut);margin:8px 0 0;text-align:center}
+.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 3px 0 8px;vertical-align:-1px}
+.trail{stroke-width:2.2;opacity:.5;stroke-linecap:round}
+.tdot{opacity:.6}
+.trail.focus{stroke-width:3.2;opacity:.85}
+.time{display:flex;align-items:center;gap:8px;margin:6px 0 0}
+.time button{min-width:46px;height:40px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:600}
+#slider{flex:1;height:40px;accent-color:var(--ink);min-width:0}
+#chips{display:flex;gap:3px;margin:3px 0}
+#chips button{flex:1;min-width:0;height:34px;border:1px solid var(--line);background:#fff;border-radius:6px;font-weight:600;padding:0;line-height:1.05;font-size:14px}
+#chips button small{display:block;font-size:10px;font-weight:400}
+#chips button.dark{background:#16181d;color:#fff;border-color:#16181d}
+#chips button.now{outline:3px solid #2f6fde;outline-offset:1px}
+table{border-collapse:collapse;width:100%}
+details,.panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 12px;margin-bottom:10px}
+summary{font-weight:600;cursor:pointer}
+details ul{margin:6px 0;padding-left:20px}
+details p{margin:6px 0}
+.panel h2{font-size:15px;margin:0 0 8px}
+.chip{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#111;border:1.5px solid #1b1d22;flex:none}
+.big{width:100%;height:48px;border:0;border-radius:8px;background:#b91c1c;color:#fff;font-weight:700}
+.big:disabled{background:#d6d3cc;color:#8b8880}
+.big.blue{background:#2f6fde}
+.plain{height:42px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 12px;font-weight:600;margin-top:8px}
+#hints{margin:8px 0 0;padding-left:20px;font-size:15px}
+#result{display:none}
+#result.good{display:block;background:#e7f6ec;border-color:#9ad3ad}
+#result.bad{display:block;background:#fdf1e7;border-color:#f0c08a}
+#result ol{padding-left:20px;margin:6px 0;font-size:15px}
+.roles{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0}
+.roles span.r{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.mut{color:var(--mut);font-size:14px}
+#hist table td{font-size:14px;padding:3px 4px;border-bottom:1px solid var(--line)}
+#foot{font-size:12px;color:var(--mut);margin-top:14px}
+#welcome{display:none;font-size:15px}
+#welcome.on{display:block}
+#welcome p{margin:0 0 8px}
+#welcome ul{margin:0 0 8px;padding-left:20px}
+#welcome li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><h1>Museum heist</h1><div id="brief"></div></div>
+
+  <div class="panel" id="welcome">
+    <h2>How to play</h2>
+    <p>This is a recording of ten steps in a museum. At one step the lights go out, and someone swaps the painting in the Gallery for a fake. Work out who everyone is.</p>
+    <ul>
+      <li><b>Move through time</b> with the slider, the arrows or the numbered step buttons.</li>
+      <li><b>Tap a person</b> to follow them. You see their trail and the rooms they have been in.</li>
+      <li><b>Note what you work out</b> with the Guard, Visitor and Burglar buttons. Each tap moves a note from maybe to no to yes.</li>
+      <li><b>Send your report</b> once every guard and the burglar are marked "yes". You get one report.</li>
+    </ul>
+    <p class="mut">What each role can and cannot do is under Rules, further down. If you get stuck, the Hint button gives one step of reasoning at a time.</p>
+    <button class="big blue" id="welcomeOK">Start playing</button>
+  </div>
+
+  <div class="setup">
+    <select id="diff" aria-label="Difficulty"><option value="1" selected>Easy</option><option value="2">Medium</option><option value="3">Hard</option></select>
+    <button id="new">New puzzle</button>
+    <div id="clock">0:00</div>
+  </div>
+
+  <div class="mapwrap">
+    <svg id="map" viewBox="0 0 320 352" aria-label="Museum seen from above"></svg>
+  </div>
+
+  <div class="time">
+    <button id="prev" aria-label="Previous step">&#9664;</button>
+    <input id="slider" type="range" min="1" max="10" step="1" value="1" aria-label="Time step">
+    <button id="next" aria-label="Next step">&#9654;</button>
+    <button id="play">Play</button>
+  </div>
+  <div id="chips"></div>
+  <div id="people"></div>
+  <div id="pop"></div>
+
+  <div class="panel" id="reportBox">
+    <h2>Your report</h2>
+    <p id="reportText"></p>
+    <button class="big" id="submit" disabled>Submit report</button>
+    <button class="plain" id="hint">Hint</button>
+    <ol id="hints"></ol>
+  </div>
+  <div class="panel" id="result"></div>
+
+  <details id="rulesBox" open><summary>Rules</summary>
+    <p>During the blackout, someone swapped the painting in the Gallery for a fake. <b>Work out who everyone is, then report every guard and the burglar.</b> You get one report.</p>
+    <p>Each step, a person stays put or goes through one door. There are two ways in and out: the front door in the Lobby and the side door in the West Wing. Nothing can be seen during the blackout, but every rule still applies in the dark.</p>
+    <ul>
+      <li><b>Guard:</b> is never in the same room as another guard. Guards only arrive or leave at the shift change, which is a single step that you are not told. At least one guard is inside the museum at every step.</li>
+      <li><b>Visitor:</b> never goes back into a room they have left. The Rotunda is the one exception: it can be crossed any number of times.</li>
+      <li><b>Burglar:</b> is in the Gallery during the blackout. After the blackout, is never in a room with a guard. Is outside by the last step.</li>
+    </ul>
+    <p>Only the burglar has to be gone by the end. Guards and visitors may still be inside at the last step.</p>
+    <p class="mut">Outside is not a room. Every level can be solved by reasoning alone, with no guessing.</p>
+  </details>
+
+  <div class="panel" id="hist"></div>
+  <div id="foot"></div>
+</div>
+
+<script>
+'use strict';
+// =====================================================================
+// The museum: six rooms in a ring around a Rotunda. 'X' is outside.
+// =====================================================================
+const T = 10;                                   // time steps
+const NAMES = {L:'Lobby',C:'Café',W:'West Wing',G:'Gallery',E:'East Wing',S:'Shop',R:'Rotunda'};
+const RING = ['L','C','W','G','E','S','R'];     // every room
+const ADJ = {L:['C','S','R','X'], C:['L','W','R'], W:['C','G','X'], G:['W','E','R'], E:['G','S','R'], S:['E','L'], R:['L','C','G','E'], X:['L','W']};
+const ENT = ['L','W'];                          // rooms with a door to outside
+const FREE = 'R';                               // the one room a visitor may go back into
+const IN = {}; for(const r of RING) IN[r]=ADJ[r].filter(x=>x!=='X');
+const COLORS = ['#5aa7f5','#f2a93b','#c98bff','#45d394','#ff8a8a','#f1e05a','#74dfe6','#cfa77c'];
+const CASTS = {1:{g:2,v:2}, 2:{g:2,v:3}, 3:{g:3,v:4}};     // by difficulty: 5, 6 and 8 people
+const ROLE = {G:'Guard',V:'Visitor',B:'Burglar'};
+const DIFF = {1:'Easy',2:'Medium',3:'Hard'};
+
+function adj(a,b){ return a===b || (ADJ[a]||[]).includes(b); }
+const rname = r => r==='X' ? 'outside' : 'the '+NAMES[r];
+const D = d => String(d+1);                     // how a person is named on screen
+const listD = a => a.length<3 ? a.map(D).join(' and ') : a.slice(0,-1).map(D).join(', ')+' and '+D(a[a.length-1]);
+
+// =====================================================================
+// Random numbers from a seed, so a puzzle can be rebuilt from its seed
+// =====================================================================
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const ri = (rng,n) => Math.floor(rng()*n);
+const pick = (rng,a) => a[ri(rng,a.length)];
+function shuffle(rng,a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=ri(rng,i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// =====================================================================
+// The rules, checked on a complete path. Each returns what breaks, or null.
+// =====================================================================
+// the steps at which a person goes in or out of the building
+function crossingsOf(p){ const c=[]; for(let k=1;k<T;k++) if((p[k-1]==='X')!==(p[k]==='X')) c.push(k); return c; }
+const crossWord = (p,k) => (p[k]==='X' ? 'leaves' : 'comes in')+` at step ${k+1}`;
+// what one person alone shows about being a guard (the other guard rules need two people)
+function guardSoloProblem(p){
+  if(p.every(r=>r==='X')) return 'never comes inside';
+  const c=crossingsOf(p);
+  if(c.length>1) return `${crossWord(p,c[0])} and ${crossWord(p,c[1])}, and a guard only uses the doors at one step, the shift change`;
+  return null;
+}
+function visitorProblem(p){
+  const seen=new Set(); let prev=null;
+  for(let k=0;k<T;k++){ const r=p[k]; if(r===prev) continue;
+    if(r!=='X' && r!==FREE){ if(seen.has(r)) return `goes back into ${rname(r)} at step ${k+1} after leaving it`; seen.add(r); }
+    prev=r; }
+  if(p.every(r=>r==='X')) return 'never comes inside';
+  return null;
+}
+// is person d inside and the only one in their room at step k?
+function aloneAt(paths,d,k){ const r=paths[d][k]; return k<T && r!=='X' && paths.every((q,e)=>e===d || q[k]!==r); }
+// how many steps after the blackout person d spends in a room with somebody else
+function company(paths,d,b){ let c=0; for(let k=b+1;k<T;k++){ const r=paths[d][k]; if(r!=='X' && paths.some((q,e)=>e!==d && q[k]===r)) c++; } return c; }
+// first step after the blackout at which two people share a room, or -1
+function clash(px,py,b){ for(let k=b+1;k<T;k++) if(px[k]!=='X' && px[k]===py[k]) return k; return -1; }
+
+// =====================================================================
+// The same rules as the player meets them: the blackout step b is unknown.
+// These never read p[b].
+// =====================================================================
+function options(p,b){ return ['X',...RING].filter(r => adj(p[b-1],r) && adj(r,p[b+1])); }
+function withStep(p,b,r){ const q=p.slice(); q[b]=r; return q; }
+function across(p,b){ return `went from ${rname(p[b-1])} to ${rname(p[b+1])} across the blackout`; }
+// The recording with the dark step cut out. If a rule is already broken here, it is broken whatever happened in the
+// dark, and the reason can be given without mentioning the blackout. steps[] maps back to the real step numbers.
+function seen(p,b){ const rooms=[], steps=[]; for(let k=0;k<T;k++) if(k!==b){ rooms.push(p[k]); steps.push(k); } return {rooms,steps}; }
+function seenVisitorProblem(p,b){
+  const {rooms,steps}=seen(p,b), been=new Set(); let prev=null;
+  for(let i=0;i<rooms.length;i++){ const r=rooms[i]; if(r===prev) continue;
+    if(r!=='X' && r!==FREE){ if(been.has(r)) return `goes back into ${rname(r)} at step ${steps[i]+1} after leaving it`; been.add(r); }
+    prev=r; }
+  return null;
+}
+function seenGuardProblem(p,b){
+  const {rooms,steps}=seen(p,b), c=[];
+  for(let i=1;i<rooms.length;i++) if((rooms[i-1]==='X')!==(rooms[i]==='X')) c.push(`${rooms[i]==='X'?'is gone':'is inside'} by step ${steps[i]+1}`);
+  return c.length>1 ? `${c[0]} and ${c[1]}, and a guard only uses the doors at one step, the shift change` : null;
+}
+function whyNot(p,b,test,tail,plain){
+  const m=options(p,b).map(r=>test(withStep(p,b,r)));
+  if(m.every(x=>x!==null)){ const s=plain(p,b); if(s) return s; }
+  if(m.some(x=>x===null)) return null;
+  if(m.length && m.every(x=>x===m[0])) return m[0];
+  return across(p,b)+tail;
+}
+const whyNotGuardSolo = (p,b) => whyNot(p,b,guardSoloProblem,', which means using the doors twice',seenGuardProblem);
+const whyNotVisitor   = (p,b) => whyNot(p,b,visitorProblem,', which means going back into a room it had left',seenVisitorProblem);
+function whyNotBurglar(p,b){
+  if(!adj(p[b-1],'G')) return `is in ${rname(p[b-1])} just before the blackout, too far from the Gallery`;
+  if(!adj('G',p[b+1])) return `is in ${rname(p[b+1])} just after the blackout, too far from the Gallery`;
+  if(p[T-1]!=='X') return 'is still inside at the last step';
+  return null;
+}
+// the ways a person could have spent the blackout step if they were a guard: room, and the step they used the doors (0 = never)
+function guardOptions(p,b){
+  return options(p,b).map(r=>{ const q=withStep(p,b,r); if(guardSoloProblem(q)) return null; const c=crossingsOf(q); return {r, cross:c.length?c[0]:0, word:c.length?crossWord(q,c[0]):''}; }).filter(Boolean);
+}
+
+// Everything that can be read straight off the recording, before any reasoning.
+function analyse(P){
+  const n=P.paths.length, b=P.b, A={nb:[],ng:[],nv:[],gopt:[],pairG:[],clash:[]};
+  for(let d=0;d<n;d++){ const p=P.paths[d];
+    A.nb[d]=whyNotBurglar(p,b); A.ng[d]=whyNotGuardSolo(p,b); A.nv[d]=whyNotVisitor(p,b); A.gopt[d]=guardOptions(p,b);
+    A.pairG[d]=new Array(n).fill(null); A.clash[d]=new Array(n).fill(-1); }
+  for(let x=0;x<n;x++) for(let y=x+1;y<n;y++){
+    A.clash[x][y]=A.clash[y][x]=clash(P.paths[x],P.paths[y],b);
+    A.pairG[x][y]=A.pairG[y][x]=guardPairProblem(P,A,x,y); }
+  return A;
+}
+// why two people cannot both be guards, or null
+function guardPairProblem(P,A,x,y){
+  const px=P.paths[x], py=P.paths[y];
+  for(let k=0;k<T;k++) if(k!==P.b && px[k]!=='X' && px[k]===py[k]) return `${D(x)} and ${D(y)} are together in ${rname(px[k])} at step ${k+1}`;
+  const gx=A.gopt[x], gy=A.gopt[y]; if(!gx.length || !gy.length) return null;
+  let doors=true;
+  for(const a of gx) for(const c of gy){
+    const doorsOK = !a.cross || !c.cross || a.cross===c.cross;
+    if(doorsOK && !(a.r===c.r && a.r!=='X')) return null;
+    if(doorsOK) doors=false; }
+  return doors ? `${D(x)} ${gx[0].word} and ${D(y)} ${gy[0].word}, and guards only use the doors at one step, the shift change`
+               : `${D(x)} and ${D(y)} must have been in the same room during the blackout`;
+}
+// could this whole set of people be the guards? (exact: tries every way they could have spent the blackout)
+function guardsFit(P,A,set){
+  for(let i=0;i<set.length;i++) for(let j=i+1;j<set.length;j++) if(A.pairG[set[i]][set[j]]) return false;
+  for(let k=0;k<T;k++) if(k!==P.b && !set.some(d=>P.paths[d][k]!=='X')) return false;        // a guard is on duty at every step
+  const rec=(i,cross,rooms,inside)=>{ if(i===set.length) return inside;                       // ... including in the dark
+    for(const o of A.gopt[set[i]]){ if(o.cross && cross && o.cross!==cross) continue; if(o.r!=='X' && rooms.includes(o.r)) continue;
+      if(rec(i+1,cross||o.cross,o.r==='X'?rooms:rooms.concat(o.r),inside||o.r!=='X')) return true; }
+    return false; };
+  return rec(0,0,[],false);
+}
+
+// =====================================================================
+// Checker 1: brute force. Every way of handing out the roles that the rules allow.
+// =====================================================================
+function bruteForce(P,A){
+  A=A||analyse(P); const n=P.paths.length, valid=[];
+  for(let x=0;x<n;x++){ if(A.nb[x]) continue;
+    for(let mask=0; mask<(1<<n); mask++){ if(mask>>x&1) continue;
+      const set=[]; let ok=true;
+      for(let d=0;d<n&&ok;d++){ if(d===x) continue;
+        if(mask>>d&1){ set.push(d); if(A.ng[d] || A.clash[x][d]>=0) ok=false; }
+        else if(A.nv[d]) ok=false; }
+      if(!ok || set.length!==P.g || !guardsFit(P,A,set)) continue;
+      const a=[]; for(let d=0;d<n;d++) a.push(d===x?'B':(mask>>d&1)?'G':'V'); valid.push(a);
+    } }
+  return valid;
+}
+
+// =====================================================================
+// Checker 2: the logic solver. Only named reasoning steps, never trial and error.
+// cap = the hardest kind of step it may use (1 to 4). skip = facts to leave unused (for trimming the worked answer).
+// =====================================================================
+function logicSolve(P,cap,A,skip){
+  A=A||analyse(P); skip=skip||new Set();
+  const n=P.paths.length, idx=[...Array(n).keys()];
+  const poss=idx.map(()=>new Set(['G','V','B'])), trail=[];
+  const rm=(d,role,tier,text,tag)=>{ if(!poss[d].has(role)) return false; poss[d].delete(role); trail.push({tier,text,tag}); return true; };
+  const conf=r=>idx.filter(d=>poss[d].size===1 && poss[d].has(r));
+  const cand=r=>idx.filter(d=>poss[d].has(r));
+
+  // kind 1: what one person's own movements rule out
+  for(const d of idx) if(A.nb[d]) rm(d,'B',1,`${D(d)} ${A.nb[d]}, so ${D(d)} is not the burglar.`,'nb');
+  for(const d of idx) if(A.nv[d] && !skip.has('nv'+d)) rm(d,'V',1,`${D(d)} ${A.nv[d]}, so ${D(d)} is not a visitor.`,'nv'+d);
+  for(const d of idx) if(A.ng[d] && !skip.has('ng'+d)) rm(d,'G',1,`${D(d)} ${A.ng[d]}, so ${D(d)} is not a guard.`,'ng'+d);
+
+  // kind 2: counting against the cast list
+  function counting(){
+    let ch=false;
+    for(const [r,cnt,word] of [['G',P.g,'guard'],['V',P.v,'visitor']]){
+      const cf=conf(r), cd=cand(r), pl=cnt===1?word:word+'s';
+      if(cf.length===cnt && cd.length>cnt){ for(const d of cd) if(!cf.includes(d)) poss[d].delete(r);
+        trail.push({tier:2,tag:r,text:`${cnt===1?'The '+word+' is':'All '+cnt+' '+pl+' are'} found (${listD(cf)}), so nobody else is a ${word}.`}); ch=true; }
+      else if(cd.length===cnt && cf.length<cnt){ for(const d of cd) poss[d]=new Set([r]);
+        trail.push({tier:2,tag:r,text:`Only ${listD(cd)} can be ${cnt===1?'the '+word:pl}, and the cast has ${cnt}, so ${cnt===1?'that is settled':cnt===2?'both are':'they all are'}.`}); ch=true; }
+    }
+    const only=conf('B');
+    if(only.length===1 && cand('B').length>1){ for(const d of cand('B')) if(d!==only[0]) poss[d].delete('B');
+      trail.push({tier:2,tag:'B',text:`${D(only[0])} can't be a guard or a visitor, so ${D(only[0])} must be the burglar.`}); ch=true; }
+    const last=cand('B');
+    if(last.length===1 && poss[last[0]].size>1){ poss[last[0]]=new Set(['B']);
+      trail.push({tier:2,tag:'B',text:`Nobody else can be the burglar, so ${D(last[0])} is.`}); ch=true; }
+    return ch;
+  }
+  // kind 3: what a known guard rules out for the people around them
+  function relational(){
+    // a guard is always on duty: if only one person inside at some step could be a guard, they are one
+    for(let k=0;k<T;k++){ if(k===P.b) continue; const on=cand('G').filter(d=>P.paths[d][k]!=='X');
+      if(on.length===1 && poss[on[0]].size>1){ poss[on[0]]=new Set(['G']);
+        trail.push({tier:3,tag:'G',text:`At step ${k+1}, ${D(on[0])} is the only person inside who could be a guard, and a guard is always on duty. So ${D(on[0])} is a guard.`}); return true; } }
+    for(const y of conf('G')) for(const x of cand('G')) if(x!==y && A.pairG[x][y])
+      return rm(x,'G',3,`${A.pairG[x][y]}. ${D(y)} is a guard, so ${D(x)} is not.`,'G');
+    for(const y of conf('G')) for(const x of cand('B')){ const k=A.clash[x][y];
+      if(k>=0) return rm(x,'B',3,`${D(x)} is in ${rname(P.paths[x][k])} with guard ${D(y)} at step ${k+1}, after the blackout, so ${D(x)} is not the burglar.`,'B'); }
+    return false;
+  }
+  // kind 4: suppose someone has a role, and see that the cast can then no longer be filled
+  function fits(x,role){
+    let states=new Set(['0,0']);                          // guards placed, burglars placed
+    for(const o of idx){ if(o===x) continue;
+      const g=poss[o].has('G') && !(role==='G' && A.pairG[x][o]) && !(role==='B' && A.clash[x][o]>=0);
+      const b=poss[o].has('B') && role!=='B' && !(role==='G' && A.clash[x][o]>=0);
+      const v=poss[o].has('V'), nx=new Set();
+      for(const st of states){ const [a,c]=st.split(',').map(Number); if(g) nx.add((a+1)+','+c); if(b) nx.add(a+','+(c+1)); if(v) nx.add(st); }
+      states=nx; }
+    return states.has((P.g-(role==='G'?1:0))+','+(role==='B'?0:1));
+  }
+  function suppose(){
+    const short=(left,need)=>`That leaves ${left.length?'only '+listD(left):'nobody'} to fill the ${need===1?'one guard place':need+' guard places'} still open`;
+    for(const x of cand('G')) if(poss[x].size>1 && !fits(x,'G')){
+      const others=cand('G').filter(o=>o!==x), out=others.filter(o=>A.pairG[x][o]), left=others.filter(o=>!A.pairG[x][o]), need=P.g-1;
+      const why = left.length<need ? `${listD(out)} could not be ${out.length===1?'a guard':'guards'} too, as each is in a room with ${D(x)} at some point or uses the doors at a different step. ${short(left,need)}.`
+                                   : `Nobody who shares a room with ${D(x)} could be a guard, and nobody ${D(x)} met after the blackout could be the burglar. The cast can no longer be filled.`;
+      return rm(x,'G',4,`If ${D(x)} were a guard: ${why} So ${D(x)} is not a guard.`,'G'); }
+    for(const x of cand('B')) if(poss[x].size>1 && !fits(x,'B')){
+      const all=cand('G').filter(o=>o!==x), out=all.filter(o=>A.clash[x][o]>=0), left=all.filter(o=>A.clash[x][o]<0);
+      const why = left.length<P.g ? `${listD(out)} could not be ${out.length===1?'a guard':'guards'}, having been in a room with ${D(x)} after the blackout. ${short(left,P.g)}.`
+                                  : `Nobody ${D(x)} met after the blackout could be a guard. The cast can no longer be filled.`;
+      return rm(x,'B',4,`If ${D(x)} were the burglar: ${why} So ${D(x)} is not the burglar.`,'B'); }
+    return false;
+  }
+
+  // carry on until every single person's role is settled: the player has to report all of them
+  const done=()=>idx.every(d=>poss[d].size===1);
+  let progress=true;
+  while(progress && !done()){
+    progress=false;
+    if(cap>=2) progress=counting();
+    if(!progress && cap>=3) progress=relational();
+    if(!progress && cap>=4) progress=suppose();
+  }
+  const c=cand('B'), burglar=c.length===1?c[0]:-1, solved=done();
+  if(solved) trail.push({tier:1,tag:'end',text:`So the guards are ${listD(conf('G'))}, the burglar is ${D(burglar)}, and everyone else is a visitor.`});
+  return {burglar,solved,roles:solved?idx.map(d=>[...poss[d]][0]):null,poss,trail};
+}
+
+// The worked answer: only the facts the answer depends on, guards first, then the suspects.
+function story(P,A,tier,res){
+  const skip=new Set();
+  for(const f of res.trail.map(x=>x.tag||'').filter(t=>/^n[gv]\d/.test(t))){ skip.add(f); if(!logicSolve(P,tier,A,skip).solved) skip.delete(f); }
+  const tr=logicSolve(P,tier,A,skip).trail, out=[];
+  const S=[...P.paths.keys()].filter(d=>!A.nb[d]);
+  const line=`Only ${listD(S)} ${S.length===1?'was':'were'} in or next to the Gallery either side of the blackout, and outside by the end.${S.length===1?'':' One of them is the burglar.'}`;
+  let put=false;
+  for(const x of tr.slice(0,-1)){ if(x.tag==='nb') continue; if(!put && x.tier>=2 && x.tag==='B'){ out.push(line); put=true; }
+    const d=/^n[gv]\d/.test(x.tag||'') ? +x.tag.slice(2) : -1, isV=(x.tag||'')[1]==='v';   // two roles ruled out leaves the third: say so
+    out.push(d>=0 && A.nb[d] && (isV ? !A.ng[d] : !A.nv[d]) ? `${x.text} Nor could ${D(d)} be the burglar: ${D(d)} ${A.nb[d]}. So ${D(d)} is a ${isV?'guard':'visitor'}.` : x.text); }
+  if(!put) out.push(line);
+  out.push(tr[tr.length-1].text);
+  return out;
+}
+
+// =====================================================================
+// The generator: act out a day, then keep it only if both checkers agree
+// =====================================================================
+// Guards are placed one at a time, each keeping out of rooms the earlier ones are in. s = the shift change.
+function oneGuard(rng,s,others){
+  const type=[0,0,1,2][ri(rng,4)], p=new Array(T).fill('X');
+  const occ=(r,k)=>others.some(q=>q[k]===r);
+  const next=(r,k)=>{ const o=IN[r].filter(x=>!occ(x,k)); if(!occ(r,k) && (rng()<0.25 || !o.length)) return r; return o.length ? pick(rng,o) : null; };
+  if(type===0){ const st=RING.filter(r=>!occ(r,0)); if(!st.length) return null; p[0]=pick(rng,st);          // on duty throughout
+    for(let k=1;k<T;k++){ const r=next(p[k-1],k); if(!r) return null; p[k]=r; } }
+  else if(type===1){ const e=ENT.filter(r=>!occ(r,s-1)); if(!e.length) return null; p[s-1]=pick(rng,e);   // goes off at the shift change
+    for(let k=s-2;k>=0;k--){ const r=next(p[k+1],k); if(!r) return null; p[k]=r; } }
+  else { const e=ENT.filter(r=>!occ(r,s)); if(!e.length) return null; p[s]=pick(rng,e);                    // comes on at the shift change
+    for(let k=s+1;k<T;k++){ const r=next(p[k-1],k); if(!r) return null; p[k]=r; } }
+  return p;
+}
+function genGuards(rng,g,s){
+  const done=[];
+  for(let i=0;i<g;i++){ let p=null; for(let t=0;t<40 && !p;t++) p=oneGuard(rng,s,done); if(!p) return null; done.push(p); }
+  return done;
+}
+function genVisitor(rng){
+  const p=new Array(T).fill('X'), used=new Set(); let k, room;
+  if(rng()<0.5){ k=0; room=pick(rng,RING); } else { k=1+ri(rng,T-3); room=pick(rng,ENT); }
+  while(k<T){ p[k]=room; k++;
+    if(k<T && rng()>=0.45){ const o=IN[room].filter(x=>x===FREE || !used.has(x)); if(ENT.includes(room)) o.push('X'); if(!o.length) continue;
+      const nx=pick(rng,o); if(nx==='X') break; if(room!==FREE) used.add(room); room=nx; } }
+  return p;
+}
+// A visitor-style route that is in the Gallery during the blackout and outside by the end, never going back into a room.
+// The burglar uses the same builder as the innocent lookalikes, plus: guards = rooms to keep clear of after the
+// blackout, crowd = visitors to blend in with, opt = things the route must match (z: already in the Gallery the
+// step before; ok(room, step)).
+function genThrough(rng,b,guards,crowd,opt){
+  const p=new Array(T).fill('X'), used=new Set();
+  const a=opt ? (opt.z ? b-1-ri(rng,2) : b) : b-ri(rng,3);       // step at which it reached the Gallery
+  for(let k=a;k<=b;k++) p[k]='G';
+  let k=a-1, room='G';                                           // before the Gallery, working backwards in time
+  while(k>=0){
+    if(ENT.includes(room) && rng()<0.5) break;                   // it came in from outside
+    const o=IN[room].filter(x=>x!=='G' && (x===FREE || !used.has(x)));
+    if(!o.length){ if(!ENT.includes(room)) while(k>=0) p[k--]=room; break; }
+    room=pick(rng,o); if(room!==FREE) used.add(room);
+    let stay=1+ri(rng,3); while(stay-->0 && k>=0) p[k--]=room; }
+  const free=(r,k)=> r==='X' || !guards.some(q=>q[k]===r);
+  function walk(k,room){
+    if(k===T-1) return room==='X';
+    if(room==='X'){ p[k+1]='X'; return walk(k+1,'X'); }
+    const o=shuffle(rng,ADJ[room].filter(x=>x==='X' || x===FREE || !used.has(x)));
+    if(rng()<0.45) o.unshift(room); else o.push(room);
+    if(crowd && rng()<0.6){ const busy=r=>r!=='X' && crowd.some(q=>q[k+1]===r) ? 1 : 0; o.sort((x,y)=>busy(y)-busy(x)); }
+    for(const r of o){ if(!free(r,k+1) || (opt && !opt.ok(r,k+1))) continue;
+      const left = r!==room && room!==FREE;
+      if(left) used.add(room);
+      p[k+1]=r; if(walk(k+1,r)) return true;
+      if(left) used.delete(room); }
+    return false; }
+  return walk(b,'G') ? p : null;
+}
+// looks = how many visitors are lookalikes (suspects who behave as the burglar does). Left out, it is random.
+function rawScenario(rng,g,v,looks){
+  const b=3+ri(rng,3); let s; do{ s=2+ri(rng,T-3); }while(s===b || s===b+1);
+  const sample=(gen,ok,tries)=>{ for(let i=0;i<tries;i++){ const p=gen(); if(p && ok(p)) return p; } return null; };
+  const guards=genGuards(rng,g,s); if(!guards) return null;
+  for(let k=0;k<T;k++) if(!guards.some(p=>p[k]!=='X')) return null;                // a guard is on duty at every step
+  const paths=guards.slice(), roles=guards.map(()=>'G');
+  // A lookalike is an innocent visitor acted out exactly as the burglar is, only without keeping clear of the guards.
+  // It must meet a guard after the blackout, or it could never be cleared.
+  const nLook=Math.min(v, looks || 1+ri(rng,Math.min(v,3))), lookalikes=[];
+  for(let i=0;i<v;i++){ let p;
+    if(i<nLook){ p=sample(()=>genThrough(rng,b,[],null), q=>guards.some(gd=>clash(q,gd,b)>=0), 40); if(!p) return null; lookalikes.push(p); }
+    else p=genVisitor(rng);
+    paths.push(p); roles.push('V'); }
+  // The burglar copies one lookalike: when it leaves, whether it lingers in the Gallery, and whether it is alone or in
+  // company for each of the three steps after the blackout. (Standing in the lookalike's own room always matches.)
+  const innocents=paths.slice(), m=pick(rng,lookalikes);
+  const status=(r,k,self)=> r==='X' ? 'x' : innocents.some(q=>q!==self && q[k]===r) ? 'w' : 'a';
+  const want={out:m.indexOf('X',b+1), after:m[b+1]==='G', z:m[b-1]==='G', st:[1,2,3].map(j=>status(m[b+j],b+j,m))};
+  const ok=(r,k)=> !(k===b+1 && (r==='G')!==want.after) && !(k<=b+3 && r!==m[k] && status(r,k,null)!==want.st[k-b-1])
+                && !(k<want.out && r==='X') && !(k===want.out && r!=='X');
+  const bp=genThrough(rng,b,guards,paths.slice(g),{z:want.z,ok});
+  if(!bp) return null;
+  paths.push(bp); roles.push('B');
+  const order=shuffle(rng,[...paths.keys()]);
+  return {paths:order.map(i=>paths[i]), roles:order.map(i=>roles[i]), b, s, g, v};
+}
+function rate(sc){ const A=analyse(sc); for(let cap=1;cap<=4;cap++){ const res=logicSolve(sc,cap,A); if(res.solved) return {tier:cap,res,A}; } return null; }
+// Difficulty sets the cast (5, 6 or 8 people) and the hardest kind of step needed to settle everyone:
+// easy and medium stop at "a known guard rules people out"; hard always needs at least one what-if.
+const suits = (diff,tier) => diff===3 ? tier===4 : tier===3;
+
+function makePuzzle(seed,diff){
+  const rng=mulberry32(seed), {g,v}=CASTS[diff]; let best=null;
+  for(let a=0;a<8000;a++){
+    const sc=rawScenario(rng,g,v); if(!sc) continue;
+    const r=rate(sc); if(!r) continue;                                   // the logic solver must settle every role
+    const truth=sc.roles.join('');
+    if(r.res.roles.join('')!==truth) continue;                           // and agree with the day as acted out
+    const fit=suits(diff,r.tier); if(!fit && best) continue;
+    const bf=bruteForce(sc,r.A);
+    if(bf.length!==1 || bf[0].join('')!==truth) continue;                // and brute force must find that same single cast
+    const pz={...sc, burglar:sc.roles.indexOf('B'), tier:r.tier, fallback:!fit, trail:r.res.trail, story:story(sc,r.A,r.tier,r.res), seed, diff};
+    if(fit) return pz;
+    best=pz;
+  }
+  return best;
+}
+
+// =====================================================================
+// Tests (run from the console or at load)
+// =====================================================================
+function knownCases(){
+  const X='X', r=[]; const eq=(name,got,want)=>r.push({name,pass:got===want});
+  eq('visitor walking through', visitorProblem([X,'L','L','C','C','W','W','G','G','G'])===null, true);
+  eq('visitor going back', visitorProblem(['C','W','C','C','C','C','C','C','C','C'])===null, false);
+  eq('visitor back into the Lobby', visitorProblem(['L','C','L','S','S','S','S','S','S','S'])===null, false);
+  eq('visitor back through the Rotunda', visitorProblem(['R','C','R','E','E','E','E','E','E','E'])===null, true);
+  eq('visitor out and back into the same room', visitorProblem(['W',X,'W','W','W','W','W','W','W','W'])===null, false);
+  eq('guard using the doors once', guardSoloProblem(['R','L','R','C','L',X,X,X,X,X])===null, true);
+  eq('guard using the doors twice', guardSoloProblem([X,'L','R','L',X,X,X,X,X,X])===null, false);
+  eq('burglar next to the Gallery', whyNotBurglar(['W','W','W','R','?','E','S','L',X,X],4)===null, true);
+  eq('burglar too far before', whyNotBurglar(['L','L','C','C','?','W',X,X,X,X],4)===null, false);
+  eq('burglar still inside', whyNotBurglar(['W','W','W','W','?','W','C','L','L','L'],4)===null, false);
+  eq('visitor waiting through the blackout', whyNotVisitor(['L','L','C','C','?','C','W','W','G','G'],4)===null, true);
+  eq('visitor who must have doubled back', whyNotVisitor(['L','C','W','G','?','W','W','W','W','W'],4)===null, false);
+  const pair=(a,c,b)=>{ const P={paths:[a,c],b}; return guardPairProblem(P,analyse(P),0,1); };
+  eq('two guards sharing a room', pair(['R','L','R','C','R','L','S','L','R','L'],['E','S','E','S','E','S','S','S','E','S'],4)===null, false);
+  eq('two guards apart', pair(['R','L','R','C','R','L','S','L','R','L'],['E','S','E','S','E','S','E','S','E','S'],4)===null, true);
+  eq('two guards using the doors at different steps', pair([X,X,'L','R','R','R','R','R','R','R'],['W','W','W','W','W','W',X,X,X,X],4)===null, false);
+  eq('two guards using the doors at the same step', pair([X,X,X,X,X,X,'L','R','R','R'],['W','W','W','W','W','W',X,X,X,X],3)===null, true);
+  const fit=(a,c,b)=>{ const P={paths:[a,c],b}; return guardsFit(P,analyse(P),[0,1]); };
+  eq('two guards who both go off, leaving nobody on duty', fit(['W','W','W','W','W','W',X,X,X,X],['L','R','L','R','L','L',X,X,X,X],3), false);
+  eq('two guards, one staying on duty', fit(['W','W','W','W','W','W',X,X,X,X],['L','R','L','R','L','L','R','L','R','L'],3), true);
+  // a whole hand-made day: two guards, a lookalike visitor, the burglar. Known answer: person 4.
+  const day={paths:[['R','L','R','C','R','L','S','L','R','L'],['E','S','E','S','E','S','E','S','E','S'],[X,'W','W','G','G','G','R','L',X,X],['C','C','R','G','G','W',X,X,X,X]],b:4,s:7,g:2,v:1};
+  const bf=bruteForce(day); eq('hand-made day: brute force', bf.length===1 && bf[0].join('')==='GGVB', true);
+  eq('hand-made day: counting alone is not enough', logicSolve(day,2).burglar, -1);
+  eq('hand-made day: logic solver', logicSolve(day,3).burglar, 3);
+  return r;
+}
+function selfTest(n,seed){
+  const rng=mulberry32(seed||12345), casts=Object.values(CASTS);
+  const st={asked:n,scenarios:0,noScenario:0,truthBreaksRules:0,truthMissingFromBruteForce:0,uniqueBurglar:0,logicSolved:0,logicWrongBurglar:0,logicSolvedButNotUnique:0,unsoundSteps:0,uniqueButUnsolved:0,tiers:{1:0,2:0,3:0,4:0},levels:{},suspects:{}};
+  for(let i=0;i<n;i++){ const c=casts[i%3], sc=rawScenario(rng,c.g,c.v);
+    if(!sc){ st.noScenario++; continue; } st.scenarios++;
+    let bad=false; const gs=[];
+    sc.paths.forEach((p,d)=>{ const r=sc.roles[d];
+      for(let k=1;k<T;k++) if(!adj(p[k-1],p[k])) bad=true;
+      if(r==='G'){ gs.push(p); if(crossingsOf(p).some(k=>k!==sc.s) || p.every(x=>x==='X')) bad=true; }
+      if(r==='V' && visitorProblem(p)) bad=true;
+      if(r==='B'){ if(p[sc.b]!=='G' || p[T-1]!=='X') bad=true; sc.paths.forEach((q,e)=>{ if(sc.roles[e]==='G' && clash(p,q,sc.b)>=0) bad=true; }); } });
+    for(let k=0;k<T;k++) for(let i2=0;i2<gs.length;i2++) for(let j=i2+1;j<gs.length;j++) if(gs[i2][k]!=='X' && gs[i2][k]===gs[j][k]) bad=true;
+    for(let k=0;k<T;k++) if(!gs.some(p=>p[k]!=='X')) bad=true;
+    if(bad) st.truthBreaksRules++;
+    const A=analyse(sc), bf=bruteForce(sc,A), truthKey=sc.roles.join('');
+    if(!bf.some(a=>a.join('')===truthKey)) st.truthMissingFromBruteForce++;
+    // "unique" now means the whole cast is pinned down, not just the burglar: the player reports everyone
+    const uniq=bf.length===1; if(uniq) st.uniqueBurglar++;
+    const union=sc.paths.map((_,d)=>new Set(bf.map(a=>a[d])));
+    let solved=0;
+    for(let cap=1;cap<=4;cap++){ const res=logicSolve(sc,cap,A);
+      union.forEach((u,d)=>u.forEach(role=>{ if(!res.poss[d].has(role)) st.unsoundSteps++; }));
+      if(res.solved && !solved){ solved=cap; if(!uniq) st.logicSolvedButNotUnique++; if(res.roles.join('')!==truthKey) st.logicWrongBurglar++; } }
+    if(solved){ st.logicSolved++; st.tiers[solved]++; const key=(i%3+1)+':'+solved; st.levels[key]=(st.levels[key]||0)+1;
+      const sus=A.nb.filter(x=>!x).length; st.suspects[sus]=(st.suspects[sus]||0)+1; }
+    else if(uniq) st.uniqueButUnsolved++;
+  }
+  return st;
+}
+// Giveaway check: can a lazy rule of thumb name the burglar more often than chance?
+// Each rule picks among the people who had the opportunity; "chance" is a blind pick among those same people.
+function tells(n,diff,seed0){
+  const out0=(P,d)=>P.paths[d].indexOf('X',P.b+1), in0=(P,d)=>P.paths[d].findIndex(r=>r!=='X');
+  const best=(S,f,m)=>{ const v=m(...S.map(f)); return S.filter(d=>f(d)===v); };
+  const H={
+    'in the Gallery just after':(P,S)=>S.filter(d=>P.paths[d][P.b+1]==='G'),
+    'in the Gallery just before':(P,S)=>S.filter(d=>P.paths[d][P.b-1]==='G'),
+    'first to leave':(P,S)=>best(S,d=>out0(P,d),Math.min),
+    'last to leave':(P,S)=>best(S,d=>out0(P,d),Math.max),
+    'last to arrive':(P,S)=>best(S,d=>in0(P,d),Math.max),
+    'inside at the start':(P,S)=>S.filter(d=>P.paths[d][0]!=='X'),
+    'never goes back into a room':(P,S)=>S.filter(d=>!visitorProblem(P.paths[d])),
+    'least company afterwards':(P,S)=>best(S,d=>company(P.paths,d,P.b),Math.min),
+    'most company afterwards':(P,S)=>best(S,d=>company(P.paths,d,P.b),Math.max),
+    'alone one step after':(P,S)=>S.filter(d=>aloneAt(P.paths,d,P.b+1)),
+    'alone two steps after':(P,S)=>S.filter(d=>aloneAt(P.paths,d,P.b+2)),
+    'alone three steps after':(P,S)=>S.filter(d=>aloneAt(P.paths,d,P.b+3)),
+    'ever alone afterwards':(P,S)=>S.filter(d=>[1,2,3,4,5].some(j=>aloneAt(P.paths,d,P.b+j))),
+    'same route out as another suspect':(P,S)=>S.filter(d=>S.some(e=>e!==d && P.paths[e].slice(P.b+1).join('')===P.paths[d].slice(P.b+1).join(''))),
+    'leaves by the side door':(P,S)=>S.filter(d=>P.paths[d][out0(P,d)-1]==='W'),
+    'leaves by the front door':(P,S)=>S.filter(d=>P.paths[d][out0(P,d)-1]==='L'),
+    'lowest number':(P,S)=>[S[0]]
+  };
+  const acc={}; for(const k in H) acc[k]={n:0,hit:0,chance:0};
+  let made=0, sus=0;
+  for(let i=0;i<n;i++){ const P=makePuzzle((seed0||9000)+i*101,diff); if(!P || P.fallback) continue; made++;
+    const S=[...P.paths.keys()].filter(d=>!whyNotBurglar(P.paths[d],P.b)); sus+=S.length;
+    for(const k in H){ const set=H[k](P,S); if(!set.length) continue; acc[k].n++; acc[k].hit+=set.includes(P.burglar)?1/set.length:0; acc[k].chance+=1/S.length; } }
+  const res={made, 'average suspects':+(sus/made).toFixed(2)};
+  for(const k in acc){ const o=acc[k]; res[k]=o.n ? `${Math.round(100*o.hit/o.n)}% right, chance ${Math.round(100*o.chance/o.n)}%, applies to ${Math.round(100*o.n/made)}% of puzzles` : 'never applies'; }
+  return res;
+}
+
+// =====================================================================
+// The screen
+// =====================================================================
+const $ = s => document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,text){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e; }
+const chip = d => `<span class="chip" style="background:${COLORS[d]}">${D(d)}</span>`;
+const fmt = sec => { sec=Math.round(sec); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); };
+
+// the wheel: Rotunda in the middle, six wedge rooms around it
+const CX=160, CY=156, R1=49, R2=152;
+const WEDGE={G:90,E:30,S:-30,L:-90,C:210,W:150};                 // the middle of each wedge, as an angle
+const pt=(r,deg)=>[CX+r*Math.cos(deg*Math.PI/180), CY-r*Math.sin(deg*Math.PI/180)];
+function wedgePath(th){ const p1=pt(R1,th-30), p2=pt(R2,th-30), p3=pt(R2,th+30), p4=pt(R1,th+30);
+  return `M${p1}L${p2}A${R2},${R2} 0 0 0 ${p3}L${p4}A${R1},${R1} 0 0 1 ${p1}Z`; }
+function slot(r,i){
+  if(r==='X') return [34+i*36,336];
+  const c = r==='R' ? [CX,CY+5] : pt(100,WEDGE[r]);
+  return [c[0]+[-33,-11,11,33][i%4], c[1]+[-11,11][i>>2]];
+}
+// Notes drawn on each person: an arc for every role still open (guard left, visitor top, burglar right),
+// or a full ring once a role is marked. A person with no notes shows nothing.
+const RCOL={G:'#1f4fd8',V:'#1c9a4b',B:'#d11a2a'}, RARC={G:[155,265],V:[35,145],B:[275,385]}, MR=9.7;
+function arcPath(a0,a1){ const f=a=>[MR*Math.cos(a*Math.PI/180),-MR*Math.sin(a*Math.PI/180)].map(v=>v.toFixed(2)); return `M${f(a0)}A${MR},${MR} 0 0 0 ${f(a1)}`; }
+
+let P=null, t=0, timer=null, notes=[], picked=null, finished=false, hintsShown=0, elapsed=0, lastTick=0, result=null;
+
+// ---- saving (progress and history). Falls back to memory if the browser refuses.
+let storageOK=true, hist=[];
+try{ localStorage.setItem('heist4.t','1'); localStorage.removeItem('heist4.t'); hist=JSON.parse(localStorage.getItem('heist4.history')||'[]'); }catch(e){ storageOK=false; }
+function save(key,val){ if(!storageOK) return; try{ val===null ? localStorage.removeItem(key) : localStorage.setItem(key,JSON.stringify(val)); }catch(e){ storageOK=false; } }
+function load(key){ if(!storageOK) return null; try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+function saveCurrent(){ if(!P) return; save('heist4.current', finished?null:{seed:P.seed,diff:P.diff,notes,elapsed,hintsShown}); }
+// ---- the "How to play" card: shown until it is dismissed once. The clock waits while it is up.
+let introOpen=!load('heist4.intro');
+function closeIntro(){ introOpen=false; save('heist4.intro',1); $('#welcome').classList.remove('on'); lastTick=Date.now(); }
+
+function buildMap(){
+  const svg=$('#map'); svg.innerHTML='';
+  const line=(a,c)=>svg.append(el('line',{x1:a[0],y1:a[1],x2:c[0],y2:c[1],class:'door'}));
+  for(const id in WEDGE){ svg.append(el('path',{d:wedgePath(WEDGE[id]),class:'room'}));
+    const c=pt(R2-13,WEDGE[id]); svg.append(el('text',{x:c[0],y:c[1]+3,class:'rname'},NAMES[id])); }
+  svg.append(el('circle',{cx:CX,cy:CY,r:R1,class:'room'}));
+  svg.append(el('text',{x:CX,y:CY-35,class:'rname'},'Rotunda'));
+  svg.append(el('rect',{x:4,y:313,width:312,height:36,rx:4,class:'street'}));
+  svg.append(el('text',{x:8,y:321,class:'rname',style:'text-anchor:start;font-size:7px'},'Outside'));
+  svg.append(el('rect',{x:183,y:12,width:18,height:10,fill:'#b98b2e',stroke:'#6b4e12','stroke-width':2}));
+  for(const id in WEDGE) svg.append(el('path',{d:wedgePath(WEDGE[id]),class:'tint',id:'tint-'+id}));   // shading for rooms the followed person has been in or gone back into
+  svg.append(el('circle',{cx:CX,cy:CY,r:R1,class:'tint',id:'tint-R'}));
+  for(const a of [60,0,-60,-120,180,120]) line(pt(92,a),pt(124,a));                   // doors between neighbouring wedges
+  for(const id of ADJ.R) line(pt(R1,WEDGE[id]-17),pt(R1,WEDGE[id]+17));              // doors into the Rotunda (the West Wing and the Shop have none)
+  for(const id of ENT) line(pt(R2,WEDGE[id]-8),pt(R2,WEDGE[id]+8));                  // the two ways outside
+  svg.append(el('text',{x:2,y:68,class:'dlab'},'side door'));
+  svg.append(el('g',{id:'trailL'}));
+  P.paths.forEach((_,i)=>{ const g=el('g',{class:'dot',id:'dot-'+i,'data-d':i});
+    g.append(el('circle',{r:11,class:'hit'})); g.append(el('g',{class:'marks'}));
+    g.append(el('circle',{r:7.6,fill:COLORS[i],class:'body'})); g.append(el('text',{y:3.4,class:'dlabel'},D(i))); svg.append(g); });
+  const blk=el('g',{id:'blk'}); blk.append(el('rect',{x:0,y:0,width:320,height:352,rx:8,fill:'#0b0d12',opacity:.94}));
+  blk.append(el('text',{x:160,y:160,'text-anchor':'middle',fill:'#9aa3b5','font-size':16,'font-weight':700},'LIGHTS OUT')); svg.append(blk);
+}
+
+// What a followed person has done by step t: the rooms they have been in (from the moment they enter, including where
+// they start), and the rooms they have gone back into. The Rotunda never counts as gone back into, since that is
+// allowed. The dark step is skipped: the same room either side of it counts as one visit.
+function visitsSoFar(d,upTo){
+  const p=P.paths[d], been=new Set(), back=new Set(); let prev=null;
+  for(let k=0;k<=upTo;k++){ if(k===P.b) continue; const r=p[k]; if(r===prev) continue;
+    if(r!=='X'){ if(been.has(r) && r!==FREE) back.add(r); been.add(r); }
+    prev=r; }
+  return {been,back};
+}
+// a darker version of a colour, for rooms someone went back into
+const darker = hex => '#'+[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*0.5).toString(16).padStart(2,'0')).join('');
+
+function render(){
+  const dark=t===P.b;
+  $('#slider').value=t+1;
+  P.paths.forEach((p,i)=>{ const g=$('#dot-'+i);
+    g.style.pointerEvents=dark?'none':'';
+    if(dark){ g.style.opacity=0; return; }
+    const [x,y]=slot(p[t],i); g.style.transform=`translate(${x}px,${y}px)`;
+    g.style.opacity=(p[t]==='X'?0.6:1)*(picked!==null && picked!==i ? 0.28 : 1); });
+  $('#blk').style.display=dark?'':'none';
+  // following someone: lightly shade each room as they enter it, and shade it darker once they have gone back into it
+  const vis=(picked===null || dark) ? {been:new Set(),back:new Set()} : visitsSoFar(picked,t);
+  for(const id of RING){ const e=$('#tint-'+id), again=vis.back.has(id), on=vis.been.has(id);
+    e.style.fill=!on ? 'none' : again ? darker(COLORS[picked]) : COLORS[picked];
+    e.style.fillOpacity=again ? 0.7 : 0.3; e.style.stroke=again ? darker(COLORS[picked]) : 'none'; e.style.strokeWidth=again ? 3 : 0; }
+  // a trail is drawn only for the person being followed
+  const tl=$('#trailL'); tl.innerHTML='';
+  if(!dark && picked!==null) P.paths.forEach((p,i)=>{ if(i!==picked) return; let prev=null;
+    for(let k=0;k<=t;k++){ if(k===P.b || p[k]==='X'){ prev=null; continue; }
+      const q=slot(p[k],i);
+      if(prev && (prev[0]!==q[0]||prev[1]!==q[1])) tl.append(el('line',{x1:prev[0],y1:prev[1],x2:q[0],y2:q[1],stroke:COLORS[i],class:'trail focus'}));
+      if(k<t) tl.append(el('circle',{cx:q[0],cy:q[1],r:3,fill:COLORS[i],class:'tdot'}));
+      prev=q; } });
+  document.querySelectorAll('#chips button').forEach((b,k)=>b.classList.toggle('now',k===t));
+}
+function buildChips(){
+  let h=''; for(let k=0;k<T;k++) h+=`<button data-k="${k}" class="${k===P.b?'dark':''}">${k+1}<small>${k===P.b?'dark':'&nbsp;'}</small></button>`;
+  $('#chips').innerHTML=h;
+}
+
+// ---- notes live on the people. Tap someone, on the map or in the row of people, to follow them and set their role.
+function drawMarks(i){
+  const m=$('#dot-'+i+' .marks'), n=notes[i]; m.innerHTML='';
+  const yes=['G','V','B'].find(r=>n[r]===2);
+  if(yes){ m.append(el('circle',{r:MR,class:'mark',stroke:RCOL[yes],style:'stroke-width:3.2'})); return; }
+  if(!n.G && !n.V && !n.B) return;
+  for(const r of ['G','V','B']) if(n[r]!==1) m.append(el('path',{d:arcPath(RARC[r][0],RARC[r][1]),class:'mark',stroke:RCOL[r]}));
+}
+function renderPeople(){
+  let h='';
+  P.paths.forEach((_,d)=>{ const n=notes[d], yes=['G','V','B'].find(r=>n[r]===2), any=n.G||n.V||n.B;
+    const tag = yes ? `<b style="color:${RCOL[yes]}">${ROLE[yes]}</b>`
+              : any ? ['G','V','B'].filter(r=>n[r]!==1).map(r=>`<b style="color:${RCOL[r]}">${r}</b>`).join(' ') : '&nbsp;';
+    h+=`<button data-d="${d}" class="${picked===d?'now':''}" aria-label="Person ${D(d)}">${chip(d)}<small>${tag}</small></button>`; });
+  $('#people').innerHTML=h;
+}
+function renderPop(){
+  const pop=$('#pop'); if(!P) return;
+  if(picked===null){ pop.innerHTML='<p class="key">Tap a person, on the map or in the row above, to follow them and note who they are.<br><i style="background:#1f4fd8"></i>guard<i style="background:#1c9a4b"></i>visitor<i style="background:#d11a2a"></i>burglar</p>'; return; }
+  const n=notes[picked], word=['maybe','no','yes'];
+  pop.innerHTML=`<div class="who">${chip(picked)}<span>Following ${D(picked)}. Shaded: rooms ${D(picked)} has been in. Darker: rooms ${D(picked)} went back into.</span><button id="popx" aria-label="Stop following">&times;</button></div><div class="roles3">`
+    +['G','V','B'].map(r=>`<button class="pbtn ${n[r]===1?'no':n[r]===2?'yes':''}" data-r="${r}" ${finished?'disabled':''} style="border-color:${RCOL[r]};${n[r]===2?'background:'+RCOL[r]:''}">${ROLE[r]}<small>${word[n[r]]}</small></button>`).join('')+'</div>';
+}
+// the report is read straight off the notes: "yes" on guard or burglar counts, and everyone else is a visitor
+function report(){ return P.paths.map((_,d)=>notes[d].G===2 ? 'G' : notes[d].B===2 ? 'B' : 'V'); }
+function renderReport(){
+  const r=report(), idx=[...P.paths.keys()], gs=idx.filter(d=>r[d]==='G'), bs=idx.filter(d=>r[d]==='B');
+  $('#reportText').innerHTML=`<b>Guards (${gs.length} of ${P.g}):</b> ${gs.length?listD(gs):'none yet'}<br><b>Burglar:</b> ${bs.length?listD(bs):'none yet'}<br><span class="mut">Everyone else counts as a visitor.</span>`;
+  const ready=gs.length===P.g && bs.length===1, b=$('#submit');
+  b.disabled=finished || !ready;
+  b.textContent=finished ? 'Report sent' : ready ? 'Submit report' : `Mark ${P.g} guards and the burglar as "yes"`;
+  $('#hint').disabled=finished || hintsShown>=P.story.length;
+  $('#hint').textContent=hintsShown?`Another hint (${hintsShown} used)`:'Hint';
+  $('#hints').innerHTML=P.story.slice(0,hintsShown).map(x=>`<li>${x}</li>`).join('');
+}
+function renderNotes(){
+  P.paths.forEach((_,i)=>drawMarks(i));
+  document.querySelectorAll('.dot').forEach(g=>g.classList.toggle('sel',+g.dataset.d===picked));
+  renderPeople(); renderPop(); renderReport();
+}
+function follow(d){ picked = (d===null || d===picked) ? null : d; render(); renderNotes(); }
+
+function renderResult(){
+  const box=$('#result'); if(!finished){ box.className='panel'; box.innerHTML=''; return; }
+  const as={G:'a guard',V:'a visitor',B:'the burglar'};
+  box.className='panel '+(result.ok?'good':'bad');
+  box.innerHTML=`<h2>${result.ok?'Correct. Every role is right.':'Not right.'}</h2>
+    <p class="mut">Time ${fmt(result.time)} · ${result.hints} hint${result.hints===1?'':'s'} · the shift change was at step ${P.s+1}</p>
+    ${result.wrong.length?`<p><b>Where your report differed:</b></p><ul>${result.wrong.map(d=>`<li>You had ${D(d)} as ${as[result.report[d]]}. ${D(d)} was ${as[P.roles[d]]}.</li>`).join('')}</ul>`:''}
+    <div class="roles">${P.roles.map((r,d)=>`<span class="r">${chip(d)} ${ROLE[r]}</span>`).join('')}</div>
+    <p><b>How it can be worked out:</b></p><ol>${P.story.map(x=>`<li>${x}</li>`).join('')}</ol>
+    <button class="big blue" id="again">Next puzzle</button>`;
+}
+function renderHistory(){
+  const box=$('#hist'); let h='<h2>Your solves</h2>';
+  if(!storageOK) h+='<p class="mut">This viewer won\'t save progress, so the list lasts only until the page is closed.</p>';
+  if(!hist.length){ box.innerHTML=h+'<p class="mut">None yet.</p>'; return; }
+  const same=hist.filter(x=>x.ok && x.diff===P.diff).map(x=>x.time), avg=a=>a.reduce((s,x)=>s+x,0)/a.length;
+  if(same.length>=10) h+=`<p>${DIFF[P.diff]}: first five correct averaged <b>${fmt(avg(same.slice(0,5)))}</b>, latest five <b>${fmt(avg(same.slice(-5)))}</b>.</p>`;
+  else if(same.length) h+=`<p>${DIFF[P.diff]}: ${same.length} correct, average <b>${fmt(avg(same))}</b>.</p>`;
+  h+='<table>'+hist.slice(-12).reverse().map((x,i)=>`<tr><td>#${hist.length-i}</td><td>${DIFF[x.diff]}</td><td>${fmt(x.time)}</td><td>${x.ok?'&#10003;':'&#10007;'}</td><td>${x.hints?x.hints+' hint'+(x.hints===1?'':'s'):''}</td></tr>`).join('')+'</table>';
+  h+='<button class="plain" id="clearHist">Clear this list</button>';
+  box.innerHTML=h;
+}
+function renderBrief(){
+  $('#brief').innerHTML=`<b>Cast:</b> ${P.g} guards · ${P.v} visitors · 1 burglar`
+    +(P.fallback?`<br><span class="mut">No puzzle of exactly this difficulty turned up, so this one may be a little easier.</span>`:'');
+}
+
+function start(seed,diff,saved){
+  stop();
+  P=makePuzzle(seed,diff); while(!P) P=makePuzzle(++seed,diff);
+  t=0; picked=null; finished=false; result=null;
+  notes=saved&&saved.notes&&saved.notes.length===P.paths.length ? saved.notes : P.paths.map(()=>({G:0,V:0,B:0}));
+  hintsShown=saved?saved.hintsShown||0:0; elapsed=saved?saved.elapsed||0:0; lastTick=Date.now();
+  $('#diff').value=diff;
+  if(hist.length) $('#rulesBox').open=false;            // the rules stay open until the first report has been sent
+  renderBrief(); buildMap(); buildChips(); render(); renderNotes(); renderResult(); renderHistory(); saveCurrent();
+}
+function newPuzzle(){ const diff=+$('#diff').value; save('heist4.diff',diff); start((Math.random()*4294967296)>>>0, diff, null); window.scrollTo(0,0); }
+
+function submit(){
+  if(finished) return;
+  const r=report(), idx=[...P.paths.keys()];
+  if(idx.filter(d=>r[d]==='G').length!==P.g || idx.filter(d=>r[d]==='B').length!==1) return;
+  finished=true; picked=null;
+  const wrong=idx.filter(d=>r[d]!==P.roles[d]);
+  result={ok:!wrong.length,time:elapsed,hints:hintsShown,wrong,report:r};
+  hist.push({ts:Date.now(),diff:P.diff,tier:P.tier,time:Math.round(elapsed),ok:result.ok,hints:hintsShown});
+  save('heist4.history',hist); saveCurrent();
+  render(); renderNotes(); renderResult(); renderHistory();
+  $('#result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ---- controls
+function go(k){ t=Math.max(0,Math.min(T-1,k)); render(); }
+function stop(){ clearInterval(timer); timer=null; $('#play').textContent='Play'; }
+$('#slider').addEventListener('input',e=>{ stop(); go(+e.target.value-1); });
+$('#prev').onclick=()=>{ stop(); go(t-1); };
+$('#next').onclick=()=>{ stop(); go(t+1); };
+$('#play').onclick=()=>{ if(timer) return stop(); if(t===T-1) go(0);
+  $('#play').textContent='Stop'; timer=setInterval(()=>{ if(t>=T-1) return stop(); go(t+1); },750); };
+$('#chips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ stop(); go(+b.dataset.k); } });
+document.addEventListener('keydown',e=>{ if(e.target.id==='slider') return;
+  if(e.key==='ArrowLeft'){ stop(); go(t-1); } if(e.key==='ArrowRight'){ stop(); go(t+1); } });
+$('#map').addEventListener('click',e=>{ const g=e.target.closest('.dot'); follow(g ? +g.dataset.d : null); });
+$('#people').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) follow(+b.dataset.d); });
+$('#pop').addEventListener('click',e=>{
+  if(e.target.closest('#popx')) return follow(null);
+  const b=e.target.closest('.pbtn'); if(!b || picked===null || finished) return;
+  const r=b.dataset.r, n=notes[picked]; n[r]=(n[r]+1)%3;
+  if(n[r]===2) for(const o of ['G','V','B']) if(o!==r && n[o]===2) n[o]=0;          // a person holds one role
+  renderNotes(); saveCurrent(); });
+$('#submit').onclick=submit;
+$('#hint').onclick=()=>{ if(finished || hintsShown>=P.story.length) return; hintsShown++; renderReport(); saveCurrent(); };
+$('#new').onclick=newPuzzle;
+$('#welcomeOK').onclick=closeIntro;
+$('#result').addEventListener('click',e=>{ if(e.target.id==='again') newPuzzle(); });
+$('#hist').addEventListener('click',e=>{ if(e.target.id==='clearHist'){ hist=[]; save('heist4.history',hist); renderHistory(); } });
+
+// ---- clock: only counts while the page is showing and the puzzle is open
+setInterval(()=>{ const now=Date.now();
+  if(P && !finished && !introOpen && !document.hidden) elapsed+=(now-lastTick)/1000;
+  lastTick=now; $('#clock').textContent=fmt(elapsed);
+  if(P && !finished && Math.round(elapsed)%5===0) saveCurrent(); },500);
+
+// ---- go
+const KNOWN=knownCases();
+$('#foot').textContent=`Version 2 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass.`;
+$('#welcome').classList.toggle('on',introOpen);
+const saved=load('heist4.current'), pref=load('heist4.diff');
+if(saved && CASTS[saved.diff]) start(saved.seed,saved.diff,saved);
+else { $('#diff').value=CASTS[pref]?pref:1; newPuzzle(); }
+</script>
+</body>
+</html>
+
