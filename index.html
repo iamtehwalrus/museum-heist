@@ -7,9 +7,17 @@
 <meta name="description" content="A logic puzzle. Watch ten steps in a museum and work out who the guards and the burglar are.">
 <title>Museum Heist</title>
 <style>
-/* Version 5, published 2026-10-12: taken from Prototypes\20261011 diorama-8.html. Since Version 4 it has gained
-   walking between steps, the report as its own screen, the night played back after the report, a results screen, a
-   title screen, a Menu and sound. Earlier versions are kept in Game\Versions. */
+/* Version 6, published 2026-10-12: taken from Prototypes\20261012 diorama-10.html. Since Version 5 it has gained a
+   "How to Play" screen rewritten by Jeff, hints worded as the rules are, taller step buttons and controls, and a cast
+   list and door labels that are easier to read. Earlier versions are kept in Game\Versions. */
+/* Diorama 10: diorama 9 with the "How to Play" screen rewritten by Jeff (Pending Changes.md, items 47 and 48, built
+   2026-10-12): the story and the goal, then "Movement Rules", then "Instructions". Hints and the deduction say guards
+   "enter or leave the building", as his guard rule does. The rules, generator and solver work as before: only the
+   wording of the reasons they give has changed. What diorama 9 was: */
+/* Diorama 9: diorama 8 with six fixes from a polish and usability review (Pending Changes.md, items 41 to 46, built
+   2026-10-12). "How to play" names the cast list and says who a report names; hints use the rules' own words; the step
+   buttons and controls are taller; the cast list and the two door labels are easier to read. The rules, generator and
+   solver work as before: only the wording of the reasons they give has changed. What diorama 8 was: */
 /* Diorama 8: diorama 7 with stage 4 (Pending Changes.md, items 28 to 40, built 2026-10-11). A title screen; a Menu in
    the play area's top row, in place of the difficulty picker and New puzzle; Hint in the top row, opening a sheet; one
    "How to play" screen holding the rules; screens for the record of solves and for settings; and sound, made in code.
@@ -53,11 +61,11 @@ body.m-clip .top button,body.m-replay #hintBtn{visibility:hidden}
 #clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:17px;min-width:40px;text-align:right}
 
 /* The map is as wide as the page unless that would push the role buttons off the screen; then it shrinks to fit.
-   254px is the height of everything else in the play area. svh = the screen with the browser's bars showing.
+   266px is the height of everything else in the play area. svh = the screen with the browser's bars showing.
    0.7907 is the map's width divided by its height. */
 svg#map{display:block;margin:0 auto;width:100%;height:auto;border-radius:10px;background:#0f131d}
-svg#map{width:min(100%,calc(max(250px,100vh - 254px)*0.7907))}
-svg#map{width:min(100%,calc(max(250px,100svh - 254px)*0.7907))}
+svg#map{width:min(100%,calc(max(250px,100vh - 266px)*0.7907))}
+svg#map{width:min(100%,calc(max(250px,100svh - 266px)*0.7907))}
 .rname{font-size:8px;fill:#fff8e6;font-weight:700;letter-spacing:.02em}
 .oname{font-size:8px;fill:#8b95ab;font-weight:600}
 .tint{fill:none;pointer-events:none}
@@ -76,7 +84,7 @@ svg#map{width:min(100%,calc(max(250px,100svh - 254px)*0.7907))}
 .tdot{opacity:.6}
 
 #stops{display:flex;gap:3px;margin:4px 0 0}
-#stops button{flex:1;min-width:0;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:18px;font-weight:700;padding:0;font-size:14px;line-height:1}
+#stops button{flex:1;min-width:0;height:44px;border:1px solid var(--line);background:var(--panel);border-radius:22px;font-weight:700;padding:0;font-size:15px;line-height:1}
 #stops button small{display:block;font-size:9px;font-weight:400;line-height:1}
 #stops button.dark{background:#000;border-color:#e24b4a;color:#ff8d8c}
 #stops button.now{background:var(--gold);border-color:var(--gold);color:#2b1d05}
@@ -86,8 +94,8 @@ svg#map{width:min(100%,calc(max(250px,100svh - 254px)*0.7907))}
 #stops button.shift.now small{color:#2b1d05}
 
 .ctl{display:flex;align-items:center;gap:6px;margin:4px 0 0}
-.ctl button{width:52px;height:40px;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-weight:700;padding:0}
-#brief{flex:1;min-width:0;text-align:right;font-size:11px;color:var(--mut);line-height:1.2}
+.ctl button{width:52px;height:44px;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-weight:700;padding:0}
+#brief{flex:1;min-width:0;text-align:right;font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.15}
 /* the Report button: grey with a count of guards and burglars settled, red once the report is complete */
 .ctl #reportBtn{width:86px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1;font-size:14px}
 #reportBtn small{display:flex;align-items:center;gap:2px;font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -97,7 +105,7 @@ svg#map{width:min(100%,calc(max(250px,100svh - 254px)*0.7907))}
 #reportBtn.over small{color:#ffb84d}
 /* while the night plays by itself after the report, the controls give way to a Skip button */
 #clipBar{display:none;margin:4px 0 0}
-#clipBar button{width:100%;height:40px;margin:0}
+#clipBar button{width:100%;height:44px;margin:0}
 body.m-clip .ctl{display:none}
 body.m-clip #clipBar{display:block}
 body.m-clip #stops button,body.m-clip #people button,body.m-clip .fig{cursor:default}
@@ -125,10 +133,10 @@ body.m-clip #stops button,body.m-clip #people button,body.m-clip .fig{cursor:def
 .pbtn:disabled{cursor:default}
 #popx{width:40px;flex:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-size:20px;color:var(--mut);padding:0}
 /* watching the night again: the strip under the people holds the deduction, one line at a time. It is taller there,
-   so the map gives up the same 44px (254 + 44 = 298). */
+   so the map gives up the same 44px (266 + 44 = 310). */
 body.m-replay #pop{height:96px}
-body.m-replay svg#map{width:min(100%,calc(max(250px,100vh - 298px)*0.7907))}
-body.m-replay svg#map{width:min(100%,calc(max(250px,100svh - 298px)*0.7907))}
+body.m-replay svg#map{width:min(100%,calc(max(250px,100vh - 310px)*0.7907))}
+body.m-replay svg#map{width:min(100%,calc(max(250px,100svh - 310px)*0.7907))}
 .dbtn{width:38px;flex:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-weight:700;padding:0;box-shadow:0 2px 0 rgba(0,0,0,.4)}
 .dbtn:disabled{opacity:.35;cursor:default}
 .ded{flex:1;min-width:0;overflow-y:auto;font-size:12.5px;line-height:1.25;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:5px 8px}
@@ -260,25 +268,26 @@ details p{margin:6px 0}
        reached from the title screen and the Menu. -->
   <div class="scr" id="vHow">
     <button class="plain backBtn" id="howBack" data-do="back">&#9664; Back</button>
-    <h2>How to play</h2>
-    <p>This is a recording of ten steps in a museum. At one step the lights go out, and someone swaps the painting in the Gallery for a fake. <b>Work out who everyone is, then report every guard and the burglar.</b></p>
+    <h2>How to Play</h2>
+    <p>You're watching a playback of a museum heist. There's one burglar and a set number of guards and visitors. During the heist, the lights go out, and the burglar swaps the painting in the Gallery with a forgery.</p>
+    <p><b>Your goal is to identify the burglar and the guards and send your report.</b> The burglar, guards, and visitors follow movement rules, and you must deduce who is who.</p>
+    <h3 id="howRoles">Movement Rules</h3>
+    <p>During each step of the timeline, characters may stay still or move to a connected room.</p>
     <ul>
-      <li><b>Move through time</b> with the numbered steps or the arrows. Play runs the night by itself.</li>
-      <li><b>Tap a person</b> to follow them. You see their trail, and each room they have been in is shaded. A room they went back into is shaded darker.</li>
-      <li><b>Note what you work out</b> with the Guard, Visitor and Burglar buttons. Tap a role to rule it out for that person, and tap it again to bring it back. When one role is left, that is who they are.</li>
-      <li><b>Their clothes show your notes:</b> grey for no note yet, two colours while two roles are still possible (guard blue, visitor green, burglar orange, in that order from the top), and one colour once you have settled who they are.</li>
-      <li><b>Send your report</b> with the Report button, which turns red once you have settled every guard and the burglar. You get one report.</li>
+      <li><b>Guard:</b> A guard will never be in the same room as another guard. At an unknown time, there is a single shift change, and guards will only enter or leave the building at that time. Lastly, there is at least one guard in the museum at all times.</li>
+      <li><b>Visitor:</b> A visitor never re-visits a room they have been to. One exception is the Rotunda, which they can enter multiple times.</li>
+      <li><b>Burglar:</b> The burglar will always make it to the Gallery room for the blackout step. After the blackout, they will never be in the same room as a guard. By the end of the heist, the burglar will have left the museum.</li>
+    </ul>
+    <p>Nothing can be seen during the blackout, but all rules still apply.</p>
+    <h3>Instructions</h3>
+    <ul>
+      <li><b>Move through time</b> with the numbered steps or the arrows. The Play button shows the night in a continuous playback.</li>
+      <li><b>Tap a person</b> to follow them. You see their trail, and each room they have been to is shaded. Any room they have visited twice will be shaded a darker color. Tap them again or on an empty part of the map to de-select them.</li>
+      <li><b>Keep suspect notes</b> with the Guard, Visitor, and Burglar buttons. Tap a role to rule it out for the selected person, and tap it again to bring it back. Your notes also show up as the colors on their clothes. Be sure to pay attention to how many total guards and visitors there are, as shown next to the Report button.</li>
+      <li><b>Send your report</b> once you have identified the burglar and the guards. The report is made based on your suspect notes. Anyone not marked as a guard or the burglar is reported as a visitor. You only get one chance to send a report, so no guessing!</li>
       <li><b>If you get stuck,</b> Hint gives one step of the reasoning at a time.</li>
     </ul>
-    <h3 id="howRoles">The rules</h3>
-    <p>Each step, a person stays put or goes through one door. There are two ways in and out: the front door in the Lobby and the side door in the West Wing. Nothing can be seen during the blackout, but every rule still applies in the dark.</p>
-    <ul>
-      <li><b>Guard:</b> is never in the same room as another guard. Guards only arrive or leave at the shift change, which is a single step that you are not told. At least one guard is inside the museum at every step.</li>
-      <li><b>Visitor:</b> never goes back into a room they have left. The Rotunda is the one exception: it can be crossed any number of times.</li>
-      <li><b>Burglar:</b> is in the Gallery during the blackout. After the blackout, is never in a room with a guard. Is outside by the last step.</li>
-    </ul>
-    <p>Only the burglar has to be gone by the end. Guards and visitors may still be inside at the last step.</p>
-    <p class="mut">Outside is not a room. Every level can be solved by reasoning alone, with no guessing.</p>
+    <p class="mut">Every game can be solved by reasoning alone, with no guessing. Outside is not considered a room. Guards and visitors may remain inside the museum at the end of the timeline.</p>
     <button class="big gold" id="howOK" data-do="back">Back</button>
   </div>
   <div class="scr" id="vSolves"></div>
@@ -330,7 +339,7 @@ const crossWord = (p,k) => (p[k]==='X' ? 'leaves' : 'comes in')+` at step ${k+1}
 function guardSoloProblem(p){
   if(p.every(r=>r==='X')) return 'never comes inside';
   const c=crossingsOf(p);
-  if(c.length>1) return `${crossWord(p,c[0])} and ${crossWord(p,c[1])}, and a guard only uses the doors at one step, the shift change`;
+  if(c.length>1) return `${crossWord(p,c[0])} and ${crossWord(p,c[1])}, and a guard only enters or leaves the building at one step, the shift change`;
   return null;
 }
 function visitorProblem(p){
@@ -368,7 +377,7 @@ function seenVisitorProblem(p,b){
 function seenGuardProblem(p,b){
   const {rooms,steps}=seen(p,b), c=[];
   for(let i=1;i<rooms.length;i++) if((rooms[i-1]==='X')!==(rooms[i]==='X')) c.push(`${rooms[i]==='X'?'is gone':'is inside'} by step ${steps[i]+1}`);
-  return c.length>1 ? `${c[0]} and ${c[1]}, and a guard only uses the doors at one step, the shift change` : null;
+  return c.length>1 ? `${c[0]} and ${c[1]}, and a guard only enters or leaves the building at one step, the shift change` : null;
 }
 function whyNot(p,b,test,tail,plain){
   const m=options(p,b).map(r=>test(withStep(p,b,r)));
@@ -377,7 +386,7 @@ function whyNot(p,b,test,tail,plain){
   if(m.length && m.every(x=>x===m[0])) return m[0];
   return across(p,b)+tail;
 }
-const whyNotGuardSolo = (p,b) => whyNot(p,b,guardSoloProblem,', which means using the doors twice',seenGuardProblem);
+const whyNotGuardSolo = (p,b) => whyNot(p,b,guardSoloProblem,', which means entering or leaving the building more than once',seenGuardProblem);
 const whyNotVisitor   = (p,b) => whyNot(p,b,visitorProblem,', which means going back into a room it had left',seenVisitorProblem);
 function whyNotBurglar(p,b){
   const where = r => r==='X' ? 'outside' : 'in '+rname(r);                          // "is outside", "is in the Lobby"
@@ -412,7 +421,7 @@ function guardPairProblem(P,A,x,y){
     const doorsOK = !a.cross || !c.cross || a.cross===c.cross;
     if(doorsOK && !(a.r===c.r && a.r!=='X')) return null;
     if(doorsOK) doors=false; }
-  return doors ? `${D(x)} ${gx[0].word} and ${D(y)} ${gy[0].word}, and guards only use the doors at one step, the shift change`
+  return doors ? `${D(x)} ${gx[0].word} and ${D(y)} ${gy[0].word}, and guards only enter or leave the building at one step, the shift change`
                : `${D(x)} and ${D(y)} must have been in the same room during the blackout`;
 }
 // could this whole set of people be the guards? (exact: tries every way they could have spent the blackout)
@@ -483,7 +492,7 @@ function logicSolve(P,cap,A,skip){
     // a guard is always on duty: if only one person inside at some step could be a guard, they are one
     for(let k=0;k<T;k++){ if(k===P.b) continue; const on=cand('G').filter(d=>P.paths[d][k]!=='X');
       if(on.length===1 && poss[on[0]].size>1){ poss[on[0]]=new Set(['G']);
-        trail.push({tier:3,tag:'G',text:`At step ${k+1}, ${D(on[0])} is the only person inside who could be a guard, and a guard is always on duty. So ${D(on[0])} is a guard.`}); return true; } }
+        trail.push({tier:3,tag:'G',text:`At step ${k+1}, ${D(on[0])} is the only person inside who could be a guard, and at least one guard is in the museum at all times. So ${D(on[0])} is a guard.`}); return true; } }
     for(const y of conf('G')) for(const x of cand('G')) if(x!==y && A.pairG[x][y])
       return rm(x,'G',3,`${A.pairG[x][y]}. ${D(y)} is a guard, so ${D(x)} is not.`,'G');
     for(const y of conf('G')) for(const x of cand('B')){ const k=A.clash[x][y];
@@ -505,7 +514,7 @@ function logicSolve(P,cap,A,skip){
     const short=(left,need)=>`That leaves ${left.length?'only '+listD(left):'nobody'} to fill the ${need===1?'one guard place':need+' guard places'} still open`;
     for(const x of cand('G')) if(poss[x].size>1 && !fits(x,'G')){
       const others=cand('G').filter(o=>o!==x), out=others.filter(o=>A.pairG[x][o]), left=others.filter(o=>!A.pairG[x][o]), need=P.g-1;
-      const why = left.length<need ? `${listD(out)} could not be ${out.length===1?'a guard':'guards'} too, as each is in a room with ${D(x)} at some point or uses the doors at a different step. ${short(left,need)}.`
+      const why = left.length<need ? `${listD(out)} could not be ${out.length===1?'a guard':'guards'} too, as each is in a room with ${D(x)} at some point or enters or leaves the building at a different step. ${short(left,need)}.`
                                    : `Nobody who shares a room with ${D(x)} could be a guard, and nobody ${D(x)} met after the blackout could be the burglar. The cast can no longer be filled.`;
       return rm(x,'G',4,`If ${D(x)} were a guard: ${why} So ${D(x)} is not a guard.`,'G'); }
     for(const x of cand('B')) if(poss[x].size>1 && !fits(x,'B')){
@@ -1023,8 +1032,8 @@ function dressing(){
   s+=`<rect x="300" y="258" width="28" height="1.3" fill="#3d2912"/>`+['#e24b4a','#5b93b8','#d9a83a','#6fae7a','#c98bff'].map((c,k)=>`<rect x="${302+k*5.4}" y="${253.6-(k%2)}" width="3.4" height="${4.4+(k%2)}" fill="${c}"/>`).join('');
   s+=`<rect x="296" y="351" width="34" height="10" rx="1.5" fill="#8a5a2b" stroke="#5b3a1a" stroke-width=".8"/><rect x="318" y="353" width="8" height="6" rx="1" fill="#3a3f4c"/><rect x="238" y="352" width="22" height="9" rx="1.5" fill="#c9a45c" stroke="#7d5a34" stroke-width=".7"/><circle cx="244" cy="356.5" r="1.8" fill="#e24b4a"/><circle cx="249.5" cy="356.5" r="1.8" fill="#5b93b8"/><circle cx="255" cy="356.5" r="1.8" fill="#6fae7a"/>`;
   s+=`<text x="334" y="427" class="oname" text-anchor="end">Outside</text>`;                                 // below where people stand
-  s+=`<text x="188" y="374.4" font-size="6.5" font-weight="700" fill="#352f22">front door</text>`;           // a sign on the wall beside the door
-  s+=`<text x="5.5" y="66" class="oname" text-anchor="middle" transform="rotate(-90 5.5 66)" style="font-size:7px">side door</text>`;
+  s+=`<text x="188" y="374.8" font-size="7.5" font-weight="800" fill="#2a2418">front door</text>`;           // a sign on the wall beside the door
+  s+=`<text x="7.4" y="66" text-anchor="middle" transform="rotate(-90 7.4 66)" font-size="8" font-weight="700" fill="#d3daea">side door</text>`;
   return s;
 }
 function doorsSVG(){
@@ -1510,7 +1519,7 @@ function renderSettings(){
   $('#vSettings').innerHTML=BACK+'<h2>Settings</h2>'
     +row('Animations','People walk from step to step, and the night plays back after your report. Off makes every move instant.','anim',animOn)
     +row('Sound','Footsteps, the lights, your notes and the verdict.','sound',soundOn)
-    +`<p class="small">Version 5 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass. Doors: ${DOORWAYS.filter(x=>x.pass).length} of ${DOORWAYS.length} ways between rooms can be walked.</p>`;
+    +`<p class="small">Version 6 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass. Doors: ${DOORWAYS.filter(x=>x.pass).length} of ${DOORWAYS.length} ways between rooms can be walked.</p>`;
 }
 // open How to play, Your solves or Settings, remembering where to go back to
 function openScreen(which){
