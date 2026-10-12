@@ -5,88 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="description" content="A logic puzzle. Watch ten steps in a museum and work out who the guards and the burglar are.">
-<title>Museum heist</title>
+<title>Museum Heist</title>
 <style>
-:root{--bg:#faf8f4;--ink:#22252b;--mut:#6b7280;--line:#d9d4c8}
+/* Version 4, published 2026-10-11: the diorama redesign, taken from Prototypes\20261011 diorama-4.html. It replaces
+   the wheel-shaped museum of versions 1 to 3, which are kept in Game\Versions. */
+/* Diorama 4: diorama 3 with the second batch from Pending Changes.md (built 2026-10-11): the generator never makes
+   a puzzle with someone who is not seen inside; the darker room shading is stronger; the painting is bigger, lit and
+   roped off; the "front door" sign is beside the door; the name is written "Museum Heist". What diorama 3 was: */
+/* Diorama 3: stage 2's art, with Jeff's changes of 2026-10-11 (see Pending Changes.md, items 1 to 9).
+   A person's clothes show the notes about them, people no longer have colours of their own, a role is either ruled
+   out or still possible, one violet colour marks whoever is followed, and the West Wing is now the big room and the
+   Café the small one. The rules, generator and solver are unchanged. */
+:root{color-scheme:dark;--bg:#141824;--ink:#f1ecdf;--mut:#9aa5bd;--line:#303a52;--panel:#1d2332;--soft:#252c3e;--gold:#e0b040;--floor:#efe9da;--wall:#3a3f4c}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif}
 #app{max-width:560px;margin:0 auto;padding:6px 14px 48px}
-/* The top of the page is kept short so that the map and everything needed to work on it fit on a phone screen
-   with the browser's own bars showing. */
-.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 10px;margin-bottom:4px}
-h1{font-size:17px;line-height:24px;margin:0}
-#clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:18px;flex:none;align-self:center;min-width:46px;text-align:right}
 button,select{font:inherit;color:inherit}
 button{cursor:pointer}
-.setup{display:flex;gap:8px;margin-bottom:6px}
-.setup select,.setup button{height:38px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:0 8px;min-width:0;flex:1}
-.setup button{font-weight:700;background:var(--ink);color:#fff;border-color:var(--ink)}
-#brief{font-size:13px;line-height:24px}
-/* The map is as wide as the page unless that would push the note buttons off the screen; then it shrinks to fit.
-   312px is the height of everything else from the title down to the note buttons. svh = the screen with the
-   browser's bars showing. */
-svg#map{width:100%;height:auto;display:block;margin:0 auto;background:#4a4e57;border-radius:8px}
-svg#map{width:min(100%,calc(max(260px,100vh - 312px)*0.909))}
-svg#map{width:min(100%,calc(max(260px,100svh - 312px)*0.909))}
-.room{fill:#f1ede3;stroke:#4a4e57;stroke-width:3}
-.street{fill:#c9ced8}
-.rname{font-size:8.5px;fill:#8a8577;font-weight:600;text-anchor:middle}
-.dlab{font-size:7px;fill:#d7dbe3;font-weight:600}
-.door{stroke:#d8a84e;stroke-width:6;stroke-linecap:round}
-.mapwrap{position:relative}
-.dot{transition:transform .35s ease,opacity .25s;cursor:pointer}
-.dot .body{stroke:#1b1d22;stroke-width:1.3}
-.dot .hit{fill:transparent}
-.dot.sel .body{stroke:#fff;stroke-width:2.2}
-.dot .mark{fill:none;stroke-width:2.6;stroke-linecap:butt}
-.dlabel{font-size:9.5px;font-weight:700;text-anchor:middle;fill:#111;pointer-events:none}
-#pop{margin:4px 0 8px;min-height:90px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+
+/* ---- the play area: everything from here down to the role buttons fits one phone screen */
+.top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+h1{font-size:14px;line-height:38px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top{gap:6px}
+.top select,.top button{height:38px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:0 8px;min-width:0}
+.top select{flex:none;width:78px;padding:0 4px;font-size:15px}
+.top button{font-weight:700;font-size:15px;background:var(--gold);color:#2b1d05;border-color:var(--gold);padding:0 9px;white-space:nowrap}
+#clock{font-variant-numeric:tabular-nums;font-weight:700;font-size:17px;min-width:40px;text-align:right}
+
+/* The map is as wide as the page unless that would push the role buttons off the screen; then it shrinks to fit.
+   254px is the height of everything else in the play area. svh = the screen with the browser's bars showing.
+   0.7907 is the map's width divided by its height. */
+svg#map{display:block;margin:0 auto;width:100%;height:auto;border-radius:10px;background:#0f131d}
+svg#map{width:min(100%,calc(max(250px,100vh - 254px)*0.7907))}
+svg#map{width:min(100%,calc(max(250px,100svh - 254px)*0.7907))}
+.rname{font-size:8px;fill:#fff8e6;font-weight:700;letter-spacing:.02em}
+.oname{font-size:8px;fill:#8b95ab;font-weight:600}
 .tint{fill:none;pointer-events:none}
-#people{display:flex;gap:3px;margin:3px 0}
-#people button{flex:1;min-width:0;height:44px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 0 0;line-height:1}
-#people button .chip{width:24px;height:24px;font-size:13px}
-#people button small{display:block;font-size:9.5px;margin-top:3px;white-space:nowrap}
-#people button.now{outline:3px solid #2f6fde;outline-offset:1px}
-#reportText{margin:0 0 8px;font-size:15px}
-.pbtn:disabled{opacity:.6}
-#result ul{margin:6px 0;padding-left:20px;font-size:15px}
-#pop .who{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.25;min-height:30px;color:var(--mut);margin:0 2px 6px}
-#pop .who button{margin-left:auto;border:0;background:none;font-size:20px;line-height:1;width:32px;height:28px;color:var(--mut)}
-#pop .roles3{display:flex;gap:5px}
-.pbtn{flex:1;min-width:0;height:40px;border:2px solid var(--line);border-radius:8px;background:#faf8f4;font-size:13px;font-weight:700;padding:0;line-height:1.15}
-.pbtn small{display:block;font-size:11px;font-weight:400}
-.pbtn.no{color:#a3a09a;text-decoration:line-through;background:#f1efea}
-.pbtn.no small{text-decoration:none}
-.pbtn.yes{color:#fff}
-.key{font-size:13px;line-height:1.35;color:var(--mut);margin:8px 0 0;text-align:center}
-.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 3px 0 8px;vertical-align:-1px}
-.trail{stroke-width:2.2;opacity:.5;stroke-linecap:round}
+.fig{transition:transform .35s ease,opacity .25s;cursor:pointer}
+.fig .hit{fill:transparent}
+.fig .shadow{fill:#000;opacity:.28}
+.fig .body{stroke:#1b1d22;stroke-width:1.2}
+.fig .head{stroke:#1b1d22;stroke-width:1}
+.fig .init{font-size:10px;font-weight:800;text-anchor:middle;fill:#14161b;pointer-events:none}
+.fig .ring{fill:none;stroke:#7c3aed;stroke-width:2.6;display:none}
+.fig.sel .ring{display:inline}
+.fig .notebg{fill:#fff;stroke:#1b1d22;stroke-width:.8}
+.trail{stroke-width:3.2;opacity:.85;stroke-linecap:round}
 .tdot{opacity:.6}
-.trail.focus{stroke-width:3.2;opacity:.85}
-.time{display:flex;align-items:center;gap:8px;margin:6px 0 0}
-.time button{min-width:46px;height:40px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:600}
-#slider{flex:1;height:40px;accent-color:var(--ink);min-width:0}
-#chips{display:flex;gap:3px;margin:3px 0}
-#chips button{flex:1;min-width:0;height:34px;border:1px solid var(--line);background:#fff;border-radius:6px;font-weight:600;padding:0;line-height:1.05;font-size:14px}
-#chips button small{display:block;font-size:10px;font-weight:400}
-#chips button.dark{background:#16181d;color:#fff;border-color:#16181d}
-#chips button.now{outline:3px solid #2f6fde;outline-offset:1px}
+
+#stops{display:flex;gap:3px;margin:4px 0 0}
+#stops button{flex:1;min-width:0;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:18px;font-weight:700;padding:0;font-size:14px;line-height:1}
+#stops button small{display:block;font-size:9px;font-weight:400;line-height:1}
+#stops button.dark{background:#000;border-color:#e24b4a;color:#ff8d8c}
+#stops button.now{background:var(--gold);border-color:var(--gold);color:#2b1d05}
+#stops button.dark.now{background:#000;color:#ff8d8c;border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+
+.ctl{display:flex;align-items:center;gap:6px;margin:4px 0 0}
+.ctl button{width:52px;height:40px;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-weight:700;padding:0}
+#brief{flex:1;min-width:0;text-align:right;font-size:12.5px;color:var(--mut);line-height:1.25}
+
+#people{display:flex;gap:3px;margin:4px 0 0}
+#people button{flex:1;min-width:0;height:54px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:3px 0 0;line-height:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+#people button.now{border-color:#a78bfa;box-shadow:0 0 0 2px #a78bfa}
+#people .nm{font-size:11px;font-weight:600}
+#people .nt{height:11px;display:flex;align-items:center;gap:2px}
+.chip{display:block;width:26px;height:26px;flex:none}
+.top button,.ctl button,#stops button,#people button,.pbtn,#popx,.big,.plain{box-shadow:0 2px 0 rgba(0,0,0,.4)}
+#people button.now{box-shadow:0 0 0 2px #a78bfa}
+#stops button.dark.now{box-shadow:0 0 0 2px var(--gold)}
+.pip{width:7px;height:7px;border-radius:50%;display:inline-block}
+.pip.off{border:1.5px solid #4a556f}
+
+#pop{margin:4px 0 8px;height:52px;display:flex;gap:5px;align-items:stretch}
+#pop .idle{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:var(--mut);border:1px dashed var(--line);border-radius:10px;padding:0 10px;line-height:1.25}
+.pbtn{flex:1;min-width:0;border:2px solid var(--line);border-radius:10px;background:var(--soft);font-size:13px;font-weight:700;padding:0;line-height:1.15;display:flex;align-items:center;justify-content:center;gap:6px}
+.pbtn svg{flex:none}
+.pbtn small{display:block;font-size:11px;font-weight:400}
+.pbtn.no{opacity:.45;text-decoration:line-through}
+.pbtn.no small{text-decoration:none}
+.pbtn.yes{color:#0b0f18}
+.pbtn:disabled{cursor:default}
+#popx{width:40px;flex:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-size:20px;color:var(--mut);padding:0}
+
+/* ---- below the play area */
 table{border-collapse:collapse;width:100%}
-details,.panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 12px;margin-bottom:10px}
+details,.panel{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 12px;margin-bottom:10px}
 summary{font-weight:600;cursor:pointer}
 details ul{margin:6px 0;padding-left:20px}
 details p{margin:6px 0}
 .panel h2{font-size:15px;margin:0 0 8px}
-.chip{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#111;border:1.5px solid #1b1d22;flex:none}
-.big{width:100%;height:48px;border:0;border-radius:8px;background:#b91c1c;color:#fff;font-weight:700}
-.big:disabled{background:#d6d3cc;color:#8b8880}
-.big.blue{background:#2f6fde}
-.plain{height:42px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 12px;font-weight:600;margin-top:8px}
+#reportText{margin:0 0 8px;font-size:15px}
+.big{width:100%;height:48px;border:0;border-radius:10px;background:#c23b3b;color:#fff;font-weight:700}
+.big:disabled{background:var(--soft);color:var(--mut)}
+.big.blue{background:#3d7bea}
+.plain{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--soft);padding:0 12px;font-weight:600;margin-top:8px}
+.plain:disabled{opacity:.5}
+.two{display:flex;gap:8px}
+.two>*{flex:1;min-width:0}
+#confirm{display:none}
+#confirm.on{display:block}
+#confirm p{margin:0 0 8px;font-weight:600}
+#confirm .two button{height:48px;margin:0}
 #hints{margin:8px 0 0;padding-left:20px;font-size:15px}
 #result{display:none}
-#result.good{display:block;background:#e7f6ec;border-color:#9ad3ad}
-#result.bad{display:block;background:#fdf1e7;border-color:#f0c08a}
-#result ol{padding-left:20px;margin:6px 0;font-size:15px}
+#result.good{display:block;background:#10291c;border-color:#2f8f5a}
+#result.bad{display:block;background:#2e1d0c;border-color:#a8742b}
+#result ol,#result ul{padding-left:20px;margin:6px 0;font-size:15px}
 .roles{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0}
 .roles span.r{display:inline-flex;align-items:center;gap:6px;font-size:14px}
 .mut{color:var(--mut);font-size:14px}
@@ -101,38 +125,37 @@ details p{margin:6px 0}
 </head>
 <body>
 <div id="app">
-  <div class="top"><h1>Museum heist</h1><div id="brief"></div></div>
-
-  <div class="panel" id="welcome">
-    <h2>How to play</h2>
-    <p>This is a recording of ten steps in a museum. At one step the lights go out, and someone swaps the painting in the Gallery for a fake. Work out who everyone is.</p>
-    <ul>
-      <li><b>Move through time</b> with the slider, the arrows or the numbered step buttons.</li>
-      <li><b>Tap a person</b> to follow them. You see their trail and the rooms they have been in.</li>
-      <li><b>Note what you work out</b> with the Guard, Visitor and Burglar buttons. Each tap moves a note from maybe to no to yes.</li>
-      <li><b>Send your report</b> once every guard and the burglar are marked "yes". You get one report.</li>
-    </ul>
-    <p class="mut">What each role can and cannot do is under Rules, further down. If you get stuck, the Hint button gives one step of reasoning at a time.</p>
-    <button class="big blue" id="welcomeOK">Start playing</button>
-  </div>
-
-  <div class="setup">
+  <div class="top">
+    <h1>Museum Heist</h1>
     <select id="diff" aria-label="Difficulty"><option value="1" selected>Easy</option><option value="2">Medium</option><option value="3">Hard</option></select>
     <button id="new">New puzzle</button>
     <div id="clock">0:00</div>
   </div>
 
-  <div class="mapwrap">
-    <svg id="map" viewBox="0 0 320 352" aria-label="Museum seen from above"></svg>
+  <div class="panel" id="welcome">
+    <h2>How to play</h2>
+    <p>This is a recording of ten steps in a museum. At one step the lights go out, and someone swaps the painting in the Gallery for a fake. Work out who everyone is.</p>
+    <ul>
+      <li><b>Move through time</b> with the numbered steps or the arrows.</li>
+      <li><b>Tap a person</b> to follow them. You see their trail and the rooms they have been in.</li>
+      <li><b>Note what you work out</b> with the Guard, Visitor and Burglar buttons. Tap a role to rule it out for that person, and tap it again to bring it back. When one role is left, that is who they are.</li>
+      <li><b>Their clothes show your notes:</b> grey for no note yet, two colours while two roles are possible, one colour once you have settled their role.</li>
+      <li><b>Send your report</b> once you have settled every guard and the burglar. You get one report.</li>
+    </ul>
+    <p class="mut">What each role can and cannot do is under Rules, further down. If you get stuck, the Hint button gives one step of reasoning at a time.</p>
+    <button class="big blue" id="welcomeOK">Start playing</button>
   </div>
 
-  <div class="time">
+  <div class="mapwrap">
+    <svg id="map" viewBox="0 0 340 430" aria-label="Museum seen from above"></svg>
+  </div>
+  <div id="stops"></div>
+  <div class="ctl">
     <button id="prev" aria-label="Previous step">&#9664;</button>
-    <input id="slider" type="range" min="1" max="10" step="1" value="1" aria-label="Time step">
     <button id="next" aria-label="Next step">&#9654;</button>
     <button id="play">Play</button>
+    <div id="brief"></div>
   </div>
-  <div id="chips"></div>
   <div id="people"></div>
   <div id="pop"></div>
 
@@ -140,7 +163,11 @@ details p{margin:6px 0}
     <h2>Your report</h2>
     <p id="reportText"></p>
     <button class="big" id="submit" disabled>Submit report</button>
-    <button class="plain" id="hint">Hint</button>
+    <div id="confirm">
+      <p>Send this report? You only get one.</p>
+      <div class="two"><button class="big" id="sendYes">Send it</button><button class="plain" id="sendNo">Not yet</button></div>
+    </div>
+    <div class="two"><button class="plain" id="hint">Hint</button><button class="plain" id="clear">Clear notes</button></div>
     <ol id="hints"></ol>
   </div>
   <div class="panel" id="result"></div>
@@ -154,6 +181,8 @@ details p{margin:6px 0}
       <li><b>Burglar:</b> is in the Gallery during the blackout. After the blackout, is never in a room with a guard. Is outside by the last step.</li>
     </ul>
     <p>Only the burglar has to be gone by the end. Guards and visitors may still be inside at the last step.</p>
+    <p>While you follow a person, each room they have been in is shaded, and a room they went back into is shaded darker.</p>
+    <p>A person's clothes show your notes about them: grey for no note yet, two colours while two roles are still possible (guard blue, visitor green, burglar orange, in that order from the top), and one colour once you have settled who they are.</p>
     <p class="mut">Outside is not a room. Every level can be solved by reasoning alone, with no guessing.</p>
   </details>
 
@@ -180,7 +209,10 @@ const DIFF = {1:'Easy',2:'Medium',3:'Hard'};
 
 function adj(a,b){ return a===b || (ADJ[a]||[]).includes(b); }
 const rname = r => r==='X' ? 'outside' : 'the '+NAMES[r];
-const D = d => String(d+1);                     // how a person is named on screen
+// The cast: the same eight people in every puzzle, in alphabetical order. Easy uses the first five, Medium six, Hard all eight.
+// Who plays which role is shuffled afresh each time.
+const CAST = ['Ada','Ben','Cleo','Dev','Eve','Finn','Gus','Hana'];
+const D = d => CAST[d];                          // how a person is named on screen
 const listD = a => a.length<3 ? a.map(D).join(' and ') : a.slice(0,-1).map(D).join(', ')+' and '+D(a[a.length-1]);
 
 // =====================================================================
@@ -251,8 +283,9 @@ function whyNot(p,b,test,tail,plain){
 const whyNotGuardSolo = (p,b) => whyNot(p,b,guardSoloProblem,', which means using the doors twice',seenGuardProblem);
 const whyNotVisitor   = (p,b) => whyNot(p,b,visitorProblem,', which means going back into a room it had left',seenVisitorProblem);
 function whyNotBurglar(p,b){
-  if(!adj(p[b-1],'G')) return `is in ${rname(p[b-1])} just before the blackout, too far from the Gallery`;
-  if(!adj('G',p[b+1])) return `is in ${rname(p[b+1])} just after the blackout, too far from the Gallery`;
+  const where = r => r==='X' ? 'outside' : 'in '+rname(r);                          // "is outside", "is in the Lobby"
+  if(!adj(p[b-1],'G')) return `is ${where(p[b-1])} just before the blackout, too far from the Gallery`;
+  if(!adj('G',p[b+1])) return `is ${where(p[b+1])} just after the blackout, too far from the Gallery`;
   if(p[T-1]!=='X') return 'is still inside at the last step';
   return null;
 }
@@ -499,6 +532,9 @@ function rawScenario(rng,g,v,looks){
   const bp=genThrough(rng,b,guards,paths.slice(g),{z:want.z,ok});
   if(!bp) return null;
   paths.push(bp); roles.push('B');
+  // Everyone must be seen inside at some step the player can see. Without this a visitor could walk in and out during
+  // the blackout alone, and working out their role would need a rule the player is never told.
+  if(paths.some(p=>p.every((r,k)=>k===b || r==='X'))) return null;
   const order=shuffle(rng,[...paths.keys()]);
   return {paths:order.map(i=>paths[i]), roles:order.map(i=>roles[i]), b, s, g, v};
 }
@@ -625,59 +661,191 @@ function tells(n,diff,seed0){
 const $ = s => document.querySelector(s);
 const NS='http://www.w3.org/2000/svg';
 function el(tag,attrs,text){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e; }
-const chip = d => `<span class="chip" style="background:${COLORS[d]}">${D(d)}</span>`;
+// a person's face on a circle: the colour of their role once it is settled, otherwise the same grey as unmarked clothes
+const chip = (d,role) => `<svg class="chip" viewBox="-9 -21 18 18" aria-hidden="true"><circle cx="0" cy="-12" r="9" fill="${role ? CLOTH[role][0] : GREY[0]}"/>${headSVG(d)}</svg>`;
 const fmt = sec => { sec=Math.round(sec); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); };
 
-// the wheel: Rotunda in the middle, six wedge rooms around it
-const CX=160, CY=156, R1=49, R2=152;
-const WEDGE={G:90,E:30,S:-30,L:-90,C:210,W:150};                 // the middle of each wedge, as an angle
-const pt=(r,deg)=>[CX+r*Math.cos(deg*Math.PI/180), CY-r*Math.sin(deg*Math.PI/180)];
-function wedgePath(th){ const p1=pt(R1,th-30), p2=pt(R2,th-30), p3=pt(R2,th+30), p4=pt(R1,th+30);
-  return `M${p1}L${p2}A${R2},${R2} 0 0 0 ${p3}L${p4}A${R1},${R1} 0 0 1 ${p1}Z`; }
+// The building: three columns by three rows, with the East Wing and the Café two rows tall. The rooms and the doors
+// between them are the same as ADJ above; only the drawing is new. Each room is x, y, width, height.
+// The wall between the West Wing and the Café sits low, so the West Wing is the big room and the Café the small one.
+// The Café still runs beside the bottom of the Rotunda, which is where the door between them is.
+const BOX={W:[14,6,104,198], G:[118,6,112,120], E:[230,6,104,240], C:[14,204,104,162], R:[118,126,112,120], L:[118,246,112,120], S:[230,246,104,120]};
+// one door for every pair of joined rooms in ADJ, then the front door and the side door: x1, y1, x2, y2
+const DOORS=[[118,55,118,77],[230,55,230,77],[55,204,77,204],[163,126,185,126],[118,221,118,242],[230,175,230,197],
+             [163,246,185,246],[118,295,118,317],[230,295,230,317],[271,246,293,246],[163,366,185,366],[14,55,14,77]];
+const SKIN=['#f1c9a5','#c68e6a','#f1c9a5','#8a5a3c','#e0ac86','#c68e6a','#f1c9a5','#8a5a3c'];
+// where person i stands in room r: everyone keeps their own place in a four-by-two block, so nobody ever overlaps
 function slot(r,i){
-  if(r==='X') return [34+i*36,336];
-  const c = r==='R' ? [CX,CY+5] : pt(100,WEDGE[r]);
-  return [c[0]+[-33,-11,11,33][i%4], c[1]+[-11,11][i>>2]];
+  if(r==='X') return [37+i*38,406];
+  const b=BOX[r]; return [b[0]+b[2]/2+((i%4)-1.5)*24, b[1]+b[3]/2+((i>>2)-0.5)*46+10];
 }
-// Notes drawn on each person: an arc for every role still open (guard left, visitor top, burglar right),
-// or a full ring once a role is marked. A person with no notes shows nothing.
-const RCOL={G:'#1f4fd8',V:'#1c9a4b',B:'#d11a2a'}, RARC={G:[155,265],V:[35,145],B:[275,385]}, MR=9.7;
-function arcPath(a0,a1){ const f=a=>[MR*Math.cos(a*Math.PI/180),-MR*Math.sin(a*Math.PI/180)].map(v=>v.toFixed(2)); return `M${f(a0)}A${MR},${MR} 0 0 0 ${f(a1)}`; }
+// The three roles as small pictures: a badge, a ticket and a mask. Drawn in a 16 by 16 box.
+const ICON={G:'M3 2h10v5c0 4-2.5 6-5 7c-2.5-1-5-3-5-7z',
+            V:'M1.5 4.5h13v2.2a1.4 1.4 0 0 0 0 2.6v2.2h-13v-2.2a1.4 1.4 0 0 0 0-2.6z',
+            B:'M1 6.5c0-1.5 1.5-2.5 3.5-2.5c1.6 0 2.6.7 3.5.7s1.9-.7 3.5-.7c2 0 3.5 1 3.5 2.5c0 3-2 5-4 5c-1.5 0-2.2-1.2-3-1.2s-1.5 1.2-3 1.2c-2 0-4-2-4-5zM3.6 7.2a1.6 1.2 0 1 0 3.2 0a1.6 1.2 0 1 0-3.2 0zM9.2 7.2a1.6 1.2 0 1 0 3.2 0a1.6 1.2 0 1 0-3.2 0z'};
+const icon = (r,size,col) => `<svg viewBox="0 0 16 16" width="${size}" height="${size}" aria-hidden="true"><path fill="${col}" fill-rule="evenodd" d="${ICON[r]}"/></svg>`;
+// Role colours, chosen to stay apart for people with red-green colour-blindness. RUI is for the dark page,
+// RMAP for the white note tag above a person on the map.
+const RUI={G:'#7fb0ff',V:'#3ddba8',B:'#ff9a4d'}, RMAP={G:'#1f4fd8',V:'#00875f',B:'#c9510c'};
+// Clothes show the notes. Each role has a shirt colour and a darker shade of it for trousers; GREY is no note yet.
+const CLOTH={G:['#3f6fe0','#2f56b3'],V:['#1f9d78','#177a5d'],B:['#e0702a','#b85718']}, GREY=['#c4c8d1','#9a9fab'];
+// The one colour for whoever is being followed: their ring, their trail and the shading of rooms they have been in.
+const FOLLOW='#8b5cf6';
+// A note is, for each role, 0 (still possible) or 1 (ruled out). When one role is left, that is the person's role.
+const stillOpen = n => ['G','V','B'].filter(r=>n[r]!==1);
+const decided = n => { const o=stillOpen(n); return o.length===1 ? o[0] : null; };
+// what a person wears: [shirt, trousers]. With two roles left the order is always guard above visitor above burglar.
+function clothes(n){ const o=stillOpen(n); return o.length===1 ? CLOTH[o[0]] : o.length===2 ? [CLOTH[o[0]][0],CLOTH[o[1]][0]] : GREY; }
 
 let P=null, t=0, timer=null, notes=[], picked=null, finished=false, hintsShown=0, elapsed=0, lastTick=0, result=null;
+let confirming=false;      // the "Send this report?" question is showing
+let cleared=null;          // the notes as they were before "Clear notes", kept so the clear can be undone
 
-// ---- saving (progress and history). Falls back to memory if the browser refuses.
+// ---- saving (progress and history). Falls back to memory if the browser refuses. The keys are this prototype's
+// own, so the saved puzzle and history of the published game are left alone.
+const KEY='heistD1.';
 let storageOK=true, hist=[];
-try{ localStorage.setItem('heist4.t','1'); localStorage.removeItem('heist4.t'); hist=JSON.parse(localStorage.getItem('heist4.history')||'[]'); }catch(e){ storageOK=false; }
-function save(key,val){ if(!storageOK) return; try{ val===null ? localStorage.removeItem(key) : localStorage.setItem(key,JSON.stringify(val)); }catch(e){ storageOK=false; } }
-function load(key){ if(!storageOK) return null; try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
-function saveCurrent(){ if(!P) return; save('heist4.current', finished?null:{seed:P.seed,diff:P.diff,notes,elapsed,hintsShown}); }
+try{ localStorage.setItem(KEY+'t','1'); localStorage.removeItem(KEY+'t'); hist=JSON.parse(localStorage.getItem(KEY+'history')||'[]'); }catch(e){ storageOK=false; }
+function save(key,val){ if(!storageOK) return; try{ val===null ? localStorage.removeItem(KEY+key) : localStorage.setItem(KEY+key,JSON.stringify(val)); }catch(e){ storageOK=false; } }
+function load(key){ if(!storageOK) return null; try{ return JSON.parse(localStorage.getItem(KEY+key)||'null'); }catch(e){ return null; } }
+function saveCurrent(){ if(!P) return; save('current', finished?null:{seed:P.seed,diff:P.diff,notes,elapsed,hintsShown}); }
 // ---- the "How to play" card: shown until it is dismissed once. The clock waits while it is up.
-let introOpen=!load('heist4.intro');
-function closeIntro(){ introOpen=false; save('heist4.intro',1); $('#welcome').classList.remove('on'); lastTick=Date.now(); }
+let introOpen=!load('intro');
+function closeIntro(){ introOpen=false; save('intro',1); $('#welcome').classList.remove('on'); lastTick=Date.now(); }
+
+// ---- the scenery. All of this is drawing only: the rooms, doors and rules are the ones above. The museum is seen
+// from above and a little from the front, so each room shows the wall at its back, and a door in a wall that runs
+// across the picture shows as an archway in the back wall of the room below it.
+const FLOOR={W:'url(#p-wood)',G:'url(#p-stone)',E:'url(#p-wood)',C:'url(#p-check)',R:'#ece7da',L:'url(#p-tile)',S:'url(#p-board)'};
+const PAINT={W:'#6f8f7b',G:'#8c3b44',E:'#6880a3',C:'#b98d45',R:'#8f8878',L:'#5f858d',S:'#8a6587'};   // the colour of each room's back wall
+const WB=15;                                      // how tall a back wall is drawn
+const DEFS=`<defs>
+<pattern id="p-wood" width="18" height="8" patternUnits="userSpaceOnUse"><rect width="18" height="8" fill="#ecdfc6"/><path d="M0 .5h18M0 4.5h18M6 .5v4M15 4.5v4" stroke="#dccdaf" stroke-width=".8" fill="none"/></pattern>
+<pattern id="p-stone" width="24" height="12" patternUnits="userSpaceOnUse"><rect width="24" height="12" fill="#efe5d4"/><path d="M0 .5h24M0 6.5h24M8 .5v6M20 6.5v6" stroke="#e2d6c1" stroke-width=".8" fill="none"/></pattern>
+<pattern id="p-check" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#f3eee2"/><rect width="7" height="7" fill="#e5decc"/><rect x="7" y="7" width="7" height="7" fill="#e5decc"/></pattern>
+<pattern id="p-tile" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#e9e4d8"/><path d="M0 .5h20M.5 0v20" stroke="#d9d2c2" stroke-width="1" fill="none"/></pattern>
+<pattern id="p-board" width="9" height="30" patternUnits="userSpaceOnUse"><rect width="9" height="30" fill="#e4eae2"/><path d="M.5 0v30M0 12.5h9" stroke="#d2dad0" stroke-width=".8" fill="none"/></pattern>
+<pattern id="p-pave" width="22" height="14" patternUnits="userSpaceOnUse"><rect width="22" height="14" fill="#2a3142"/><path d="M0 .5h22M11 0v14" stroke="#343c50" stroke-width="1" fill="none"/></pattern>
+<radialGradient id="g-room" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></radialGradient>
+<radialGradient id="g-lamp"><stop offset="0" stop-color="#ffe9a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+</defs>`;
+// what lies under the shading: the street, the floors, the light and the walls
+function scenery(){
+  let s=DEFS;
+  s+=`<rect x="0" y="0" width="14" height="380" fill="url(#p-pave)"/><rect x="0" y="372" width="340" height="58" fill="url(#p-pave)"/>`;                 // the alley and the street
+  s+=`<circle cx="9" cy="402" r="26" fill="url(#g-lamp)"/><circle cx="331" cy="402" r="26" fill="url(#g-lamp)"/><circle cx="9" cy="402" r="2.2" fill="#ffe9a8"/><circle cx="331" cy="402" r="2.2" fill="#ffe9a8"/>`;   // street lamps
+  s+=`<rect x="11.5" y="366" width="325" height="11" fill="#9d927a"/><rect x="11.5" y="375" width="325" height="2" fill="#6f6654"/>`;                    // the front of the building
+  s+=`<rect x="164" y="366.5" width="20" height="10.5" fill="#6b4a2a" stroke="#3d2912" stroke-width="1"/><path d="M174 366.5v10.5" stroke="#3d2912" stroke-width="1"/><rect x="161" y="377.5" width="26" height="6" rx="1" fill="#9a4a4a"/>`;   // the front door and its mat
+  s+=`<rect x="9" y="56" width="5" height="20" fill="#9a4a4a"/>`;                                                                                         // the side door's step
+  for(const id of RING){ const [x,y,w,h]=BOX[id]; s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${FLOOR[id]}"/>`; }
+  s+=`<circle cx="174" cy="196" r="41" fill="#e2dac6" stroke="#cfc5ac" stroke-width="1.2"/><circle cx="174" cy="196" r="30" fill="none" stroke="#cfc5ac" stroke-width="1"/><path d="M174 170l5 21 21 5-21 5-5 21-5-21-21-5 21-5z" fill="#d3c8ad"/>`;   // the Rotunda's floor
+  // The light on the painting. The Gallery is a touch dimmer than the other rooms, and a patch of light falls on the
+  // floor from the wall under the frame, as wide as the frame there and ending just past the rope.
+  s+=`<rect x="118" y="6" width="112" height="120" fill="#000" opacity=".13"/><path d="M158 23.5h46l12.7 34h-71.4z" fill="#fff3c4" opacity=".5"/><path d="M166.1 23.5h29.8l5.1 22.2h-40z" fill="#fff8dc" opacity=".45"/>`;
+  s+=`<rect x="161" y="353" width="26" height="9" rx="1.5" fill="#9a4a4a" opacity=".75"/>`;                // the mat inside the front door
+  for(const id of RING){ const [x,y,w,h]=BOX[id];
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#g-room)"/>`;                         // each room is lit from its middle
+    s+=`<rect x="${x+2.5}" y="${y+2.5}" width="${w-5}" height="${WB}" fill="${PAINT[id]}"/><rect x="${x+2.5}" y="${y+2.5}" width="${w-5}" height="1.4" fill="#fff" opacity=".18"/>`
+      +`<rect x="${x+2.5}" y="${y+WB+.5}" width="${w-5}" height="2" fill="#000" opacity=".28"/><rect x="${x+2.5}" y="${y+WB+2.5}" width="${w-5}" height="3.5" fill="#000" opacity=".09"/>`; }   // its back wall, skirting and shadow
+  for(const id of RING){ const [x,y,w,h]=BOX[id]; s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#453f4d" stroke-width="5"/>`; }   // the tops of the walls
+  s+=`<rect x="11.5" y="3.5" width="325" height="365" fill="none" stroke="#2b2733" stroke-width="1.5"/>`;
+  return s;
+}
+// what lies over the shading: signs, pictures and furniture. People stand in front of all of it.
+function dressing(){
+  let s='';
+  const frame=(x,y,w,h,col)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#d9b24a" stroke="#7a5a12" stroke-width=".6"/><rect x="${x+1.6}" y="${y+1.6}" width="${w-3.2}" height="${h-3.2}" fill="${col}"/>`;
+  const plinth=(x,y)=>`<rect x="${x-6}" y="${y-4}" width="12" height="9" fill="#cfc7b3" stroke="#9d937b" stroke-width=".8"/><rect x="${x-6}" y="${y-4}" width="12" height="3" fill="#e6dfcc"/>`;
+  const plant=(x,y)=>`<rect x="${x-2.5}" y="${y+1}" width="5" height="4" fill="#9a6b3f"/><circle cx="${x}" cy="${y-1.5}" r="4.6" fill="#3f7d4f"/><circle cx="${x-1.5}" cy="${y-3}" r="2.2" fill="#5fa46c"/>`;
+  const table=(x,y,chairs)=>chairs.map(([dx,dy])=>`<circle cx="${x+dx}" cy="${y+dy}" r="3.1" fill="#b98a5a" stroke="#7d5a34" stroke-width=".6"/>`).join('')
+    +`<circle cx="${x}" cy="${y}" r="8" fill="#f6f1e6" stroke="#a59c86" stroke-width=".9"/><circle cx="${x}" cy="${y}" r="1.6" fill="#d9a83a"/>`;
+  const bench=(x,y,w)=>`<rect x="${x}" y="${y}" width="${w}" height="6" rx="1.5" fill="#8a5a2b" stroke="#5b3a1a" stroke-width=".7"/>`;
+  const sconce=(x,y)=>`<circle cx="${x}" cy="${y}" r="9" fill="url(#g-lamp)"/><circle cx="${x}" cy="${y}" r="1.7" fill="#ffe9a8" stroke="#7a5a12" stroke-width=".5"/>`;
+  for(const id of RING){ const [x,y]=BOX[id]; s+=`<text x="${x+8}" y="${y+13.2}" class="rname">${NAMES[id]}</text>`; }   // each room's name, as a sign on its back wall
+  // West Wing: two pictures, a bust and a vase at the top, a glass case and a small statue at the bottom, a bench, a plant
+  s+=frame(74,11,12,10,'#5b7fa6')+frame(92,11,18,10,'#c98a6b');
+  s+=plinth(46,44)+`<circle cx="46" cy="35" r="3.6" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/><path d="M40.5 40.5q5.5-5 11 0z" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/>`;
+  s+=plinth(88,44)+`<path d="M84.5 40.5q-2-6 1.5-9h4q3.5 3 1.5 9z" fill="#c9795b" stroke="#8a4a32" stroke-width=".6"/>`;
+  s+=`<rect x="30" y="166" width="30" height="10" rx="1.5" fill="#cfe3ea" stroke="#7a8a91" stroke-width=".8"/><circle cx="38" cy="171" r="1.5" fill="#d9a83a"/><circle cx="45" cy="171" r="1.5" fill="#d9a83a"/><circle cx="52" cy="171" r="1.5" fill="#d9a83a"/>`;
+  s+=plinth(92,178)+`<ellipse cx="92" cy="168.5" rx="3" ry="6" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/><circle cx="92" cy="160.5" r="2.6" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/>`;
+  s+=bench(84,192,28)+plant(25,193);
+  // Gallery: the painting, and benches to look at it from
+  s+=`<rect x="155" y="8.5" width="52" height="15" fill="#fff3c4" opacity=".42"/><rect x="176" y="7" width="10" height="2" rx="1" fill="#ffe9a8"/>`;                       // a glow on the wall, and the picture light
+  s+=`<rect x="158" y="9" width="46" height="14" fill="#e9b93f" stroke="#7a5a12" stroke-width="1"/><rect x="159.6" y="10.6" width="42.8" height="10.8" fill="none" stroke="#fff1b8" stroke-width=".6"/>`   // the frame
+    +`<rect x="161" y="12" width="40" height="8" fill="#7fc3e8"/><circle cx="191" cy="14.6" r="1.9" fill="#ffd75e"/><path d="M161 20l9-5 7 3 8-4.5 16 6.5z" fill="#3f9d6b"/><path d="M161 20l12-2.5 9 1.5 19 1z" fill="#e68a3c"/>`;   // the picture: sky, sun, hills
+  s+=`<path d="M152 31q29 7 58 0" fill="none" stroke="#a3262f" stroke-width="1.8"/><circle cx="152" cy="31" r="2.1" fill="#d9b24a" stroke="#7a5a12" stroke-width=".6"/><circle cx="210" cy="31" r="2.1" fill="#d9b24a" stroke="#7a5a12" stroke-width=".6"/>`;   // the rope and its posts
+  s+=bench(126,113,28)+bench(194,113,28);
+  // East Wing: pictures, a bust, a vase, a glass case, a statue and a globe
+  s+=frame(284,11,14,10,'#7a9a5b')+frame(304,11,22,10,'#b96a7a');
+  s+=plinth(262,50)+`<circle cx="262" cy="41" r="3.6" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/><path d="M256.5 46.5q5.5-5 11 0z" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/>`;
+  s+=plinth(310,50)+`<path d="M306.5 46.5q-2-6 1.5-9h4q3.5 3 1.5 9z" fill="#5b7fa6" stroke="#35506e" stroke-width=".6"/>`;
+  s+=`<rect x="270" y="66" width="30" height="10" rx="1.5" fill="#cfe3ea" stroke="#7a8a91" stroke-width=".8"/><circle cx="278" cy="71" r="1.5" fill="#d9a83a"/><circle cx="285" cy="71" r="1.5" fill="#d9a83a"/><circle cx="292" cy="71" r="1.5" fill="#d9a83a"/>`;
+  s+=`<circle cx="308" cy="214" r="11" fill="#cfc7b3" stroke="#9d937b" stroke-width=".8"/><circle cx="308" cy="213" r="8" fill="#e6dfcc"/><ellipse cx="308" cy="205" rx="4" ry="8" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/><circle cx="308" cy="194.5" r="3.2" fill="#bfc7cb" stroke="#8a979c" stroke-width=".6"/>`;
+  s+=plinth(250,228)+`<circle cx="250" cy="219" r="4.4" fill="#5b93b8" stroke="#35506e" stroke-width=".6"/><path d="M247 217.5q3 1.5 2.5 4" fill="none" stroke="#6fae7a" stroke-width="1.4"/>`;
+  // Café: a menu board, the counter, tables and chairs
+  s+=`<rect x="84" y="209" width="26" height="10" fill="#2b2b2b" stroke="#7a5a12" stroke-width=".8"/><path d="M87 212h14M87 214.5h18M87 217h10" stroke="#ddd" stroke-width=".7"/>`;
+  s+=`<rect x="19" y="225" width="32" height="9" rx="2" fill="#8a5a2b" stroke="#5b3a1a" stroke-width=".8"/><rect x="21" y="226.5" width="8" height="6" rx="1" fill="#3a3f4c"/><circle cx="34.5" cy="229.5" r="1.7" fill="#fff"/><circle cx="39.5" cy="229.5" r="1.7" fill="#fff"/><circle cx="46" cy="229.5" r="2.7" fill="#f4c7d0" stroke="#b98a5a" stroke-width=".6"/>`;
+  s+=table(36,351,[[-11,0],[11,0]])+table(88,351,[[-11,0],[11,0]]);
+  // Rotunda: lamps on the wall
+  s+=sconce(198,136)+sconce(220,136);
+  // Lobby: a poster, a clock, plants by the door
+  s+=`<rect x="194" y="251" width="10" height="10" fill="#e24b4a" stroke="#7a1f1f" stroke-width=".5"/><rect x="196" y="254" width="6" height="1.5" fill="#fff"/><circle cx="216" cy="256" r="4.2" fill="#fff" stroke="#3a3f4c" stroke-width=".8"/><path d="M216 256v-2.6M216 256h2" stroke="#3a3f4c" stroke-width=".7"/>`;
+  s+=plant(127,356)+plant(221,356);
+  // Shop: a shelf of things, the till, a table of gifts
+  s+=`<rect x="300" y="258" width="28" height="1.3" fill="#3d2912"/>`+['#e24b4a','#5b93b8','#d9a83a','#6fae7a','#c98bff'].map((c,k)=>`<rect x="${302+k*5.4}" y="${253.6-(k%2)}" width="3.4" height="${4.4+(k%2)}" fill="${c}"/>`).join('');
+  s+=`<rect x="296" y="351" width="34" height="10" rx="1.5" fill="#8a5a2b" stroke="#5b3a1a" stroke-width=".8"/><rect x="318" y="353" width="8" height="6" rx="1" fill="#3a3f4c"/><rect x="238" y="352" width="22" height="9" rx="1.5" fill="#c9a45c" stroke="#7d5a34" stroke-width=".7"/><circle cx="244" cy="356.5" r="1.8" fill="#e24b4a"/><circle cx="249.5" cy="356.5" r="1.8" fill="#5b93b8"/><circle cx="255" cy="356.5" r="1.8" fill="#6fae7a"/>`;
+  s+=`<text x="334" y="427" class="oname" text-anchor="end">Outside</text>`;                                 // below where people stand
+  s+=`<text x="188" y="374.4" font-size="6.5" font-weight="700" fill="#352f22">front door</text>`;           // a sign on the wall beside the door
+  s+=`<text x="5.5" y="66" class="oname" text-anchor="middle" transform="rotate(-90 5.5 66)" style="font-size:7px">side door</text>`;
+  return s;
+}
+function doorsSVG(){
+  let s=''; const FLR='#f3ecdc', WOOD='#8a5a2b', BRASS='#b08a3c';
+  for(const [x1,y1,x2,y2] of DOORS){
+    if(y1===y2 && y1<366)       // in a wall that runs across: an archway in the back wall of the room below
+      s+=`<rect x="${x1}" y="${y1-2.6}" width="${x2-x1}" height="${WB+5.1}" fill="${FLR}"/><rect x="${x1-1.6}" y="${y1-2.6}" width="1.6" height="${WB+5.1}" fill="${WOOD}"/><rect x="${x2}" y="${y1-2.6}" width="1.6" height="${WB+5.1}" fill="${WOOD}"/><path d="M${x1} ${y1}H${x2}" stroke="${BRASS}" stroke-width="1.6"/>`;
+    else if(y1===y2)            // the front door, seen from inside as a gap in the front wall
+      s+=`<path d="M${x1} ${y1}H${x2}" stroke="${FLR}" stroke-width="6"/><path d="M${x1} ${y1}H${x2}" stroke="${BRASS}" stroke-width="2"/>`;
+    else                        // in a wall that runs up and down: an opening seen from above, with a post at each end
+      s+=`<path d="M${x1} ${y1}V${y2}" stroke="${FLR}" stroke-width="6"/><path d="M${x1} ${y1}V${y2}" stroke="${BRASS}" stroke-width="1.6"/><rect x="${x1-3.4}" y="${y1-1.6}" width="6.8" height="1.6" fill="${WOOD}"/><rect x="${x1-3.4}" y="${y2}" width="6.8" height="1.6" fill="${WOOD}"/>`;
+  }
+  return s;
+}
+
+// ---- the cast. Each of the eight keeps the same face, hair and colour in every puzzle, and nothing about how a
+// person is drawn says what role they have. The head is drawn round (0, -11.5); it is used on the map and in the
+// row of people.
+const HAIR=['#4a2f1b','#1d1a17','#15131a','#1a1512','#e2b84f','#a8961c','#b9b4aa','#17141c'];
+function headSVG(i){
+  const h=HAIR[i], cap=`<path d="M-5.2,-12 a5.2,5.2 0 0 1 10.4,0 q-5.2,-3.4 -10.4,0z" fill="${h}"/>`;
+  const extra=[
+    `<circle cx="0" cy="-17.6" r="2.3" fill="${h}"/>`+cap,                                                                                   // Ada: a bun
+    cap+`<path d="M-3.6,-9.6 q3.6,4.6 7.2,0" fill="none" stroke="${h}" stroke-width="1.6" stroke-linecap="round"/>`,                        // Ben: a beard
+    `<path d="M-5.8,-12 a5.8,5.8 0 0 1 11.6,0 v5 h-2.4 v-4.4 q-3.4,-2.6 -6.8,0 v4.4 h-2.4z" fill="${h}"/>`,                                 // Cleo: a long bob
+    `<path d="M-5.2,-12.6 v-1.6 q5.2,-4.6 10.4,0 v1.6 q-5.2,-2.2 -10.4,0z" fill="${h}"/>`,                                                  // Dev: cropped
+    `<ellipse cx="6.2" cy="-10.6" rx="1.9" ry="3.3" fill="${h}"/>`+cap,                                                                      // Eve: a ponytail
+    `<path d="M-5.4,-12.2 a5.4,5.4 0 0 1 10.8,0z" fill="${h}"/><rect x="-6.6" y="-12.9" width="13.2" height="1.5" rx=".7" fill="#7d6f12"/>`, // Finn: a cap
+    `<path d="M-5,-11 q-.6,-2 .4,-3.4 M5,-11 q.6,-2 -.4,-3.4" fill="none" stroke="${h}" stroke-width="1.5" stroke-linecap="round"/><path d="M-3,-8.9 q1.5,-1.4 3,0 q1.5,-1.4 3,0" fill="none" stroke="${h}" stroke-width="1.4" stroke-linecap="round"/>`,   // Gus: bald, with a moustache
+    cap+`<path d="M-4.9,-13.1 q4.9,-2 9.8,0" fill="none" stroke="#e24b4a" stroke-width="1.5"/>`                                              // Hana: a red headband
+  ][i];
+  return `<circle cx="0" cy="-11.5" r="5" fill="${SKIN[i]}" stroke="#1b1d22" stroke-width="1"/>${extra}<circle cx="-1.8" cy="-10.5" r=".75" fill="#1b1d22"/><circle cx="1.8" cy="-10.5" r=".75" fill="#1b1d22"/>`;
+}
+function figureSVG(i){
+  return `<ellipse class="ring" cx="0" cy="12.6" rx="12" ry="5"/><ellipse class="shadow" cx="1" cy="12.6" rx="8.5" ry="3"/>`
+    +`<ellipse cx="-3.2" cy="12" rx="2.7" ry="1.5" fill="#2a2620"/><ellipse cx="3.2" cy="12" rx="2.7" ry="1.5" fill="#2a2620"/>`
+    +`<rect class="body trousers" x="-6.5" y="2" width="13" height="9.5" rx="3.2" fill="${GREY[1]}"/><path d="M0,6.5 v5" stroke="#1b1d22" stroke-width="1"/>`
+    +`<rect class="body shirt" x="-7.5" y="-7" width="15" height="11.5" rx="5" fill="${GREY[0]}"/>`
+    +headSVG(i)+`<text class="init" y="2.4">${D(i)[0]}</text><g class="marks"></g><rect class="hit" x="-12" y="-33" width="24" height="48"/>`;
+}
 
 function buildMap(){
-  const svg=$('#map'); svg.innerHTML='';
-  const line=(a,c)=>svg.append(el('line',{x1:a[0],y1:a[1],x2:c[0],y2:c[1],class:'door'}));
-  for(const id in WEDGE){ svg.append(el('path',{d:wedgePath(WEDGE[id]),class:'room'}));
-    const c=pt(R2-13,WEDGE[id]); svg.append(el('text',{x:c[0],y:c[1]+3,class:'rname'},NAMES[id])); }
-  svg.append(el('circle',{cx:CX,cy:CY,r:R1,class:'room'}));
-  svg.append(el('text',{x:CX,y:CY-35,class:'rname'},'Rotunda'));
-  svg.append(el('rect',{x:4,y:313,width:312,height:36,rx:4,class:'street'}));
-  svg.append(el('text',{x:8,y:321,class:'rname',style:'text-anchor:start;font-size:7px'},'Outside'));
-  svg.append(el('rect',{x:183,y:12,width:18,height:10,fill:'#b98b2e',stroke:'#6b4e12','stroke-width':2}));
-  for(const id in WEDGE) svg.append(el('path',{d:wedgePath(WEDGE[id]),class:'tint',id:'tint-'+id}));   // shading for rooms the followed person has been in or gone back into
-  svg.append(el('circle',{cx:CX,cy:CY,r:R1,class:'tint',id:'tint-R'}));
-  for(const a of [60,0,-60,-120,180,120]) line(pt(92,a),pt(124,a));                   // doors between neighbouring wedges
-  for(const id of ADJ.R) line(pt(R1,WEDGE[id]-17),pt(R1,WEDGE[id]+17));              // doors into the Rotunda (the West Wing and the Shop have none)
-  for(const id of ENT) line(pt(R2,WEDGE[id]-8),pt(R2,WEDGE[id]+8));                  // the two ways outside
-  svg.append(el('text',{x:2,y:68,class:'dlab'},'side door'));
+  const svg=$('#map'); svg.innerHTML=scenery();
+  for(const id of RING){ const b=BOX[id]; svg.append(el('rect',{x:b[0],y:b[1],width:b[2],height:b[3],class:'tint',id:'tint-'+id})); }   // shading for rooms the followed person has been in or gone back into
+  svg.insertAdjacentHTML('beforeend',dressing()+doorsSVG());
   svg.append(el('g',{id:'trailL'}));
-  P.paths.forEach((_,i)=>{ const g=el('g',{class:'dot',id:'dot-'+i,'data-d':i});
-    g.append(el('circle',{r:11,class:'hit'})); g.append(el('g',{class:'marks'}));
-    g.append(el('circle',{r:7.6,fill:COLORS[i],class:'body'})); g.append(el('text',{y:3.4,class:'dlabel'},D(i))); svg.append(g); });
-  const blk=el('g',{id:'blk'}); blk.append(el('rect',{x:0,y:0,width:320,height:352,rx:8,fill:'#0b0d12',opacity:.94}));
-  blk.append(el('text',{x:160,y:160,'text-anchor':'middle',fill:'#9aa3b5','font-size':16,'font-weight':700},'LIGHTS OUT')); svg.append(blk);
+  P.paths.forEach((_,i)=>{ const g=el('g',{class:'fig',id:'dot-'+i,'data-d':i}); g.innerHTML=figureSVG(i); svg.append(g); });
+  const blk=el('g',{id:'blk'}); blk.append(el('rect',{x:0,y:0,width:340,height:430,rx:10,fill:'#05070b',opacity:.95}));
+  blk.append(el('text',{x:170,y:190,'text-anchor':'middle',fill:'#9aa3b5','font-size':16,'font-weight':700},'LIGHTS OUT')); svg.append(blk);
 }
 
 // What a followed person has done by step t: the rooms they have been in (from the moment they enter, including where
@@ -695,71 +863,85 @@ const darker = hex => '#'+[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16
 
 function render(){
   const dark=t===P.b;
-  $('#slider').value=t+1;
   P.paths.forEach((p,i)=>{ const g=$('#dot-'+i);
     g.style.pointerEvents=dark?'none':'';
     if(dark){ g.style.opacity=0; return; }
     const [x,y]=slot(p[t],i); g.style.transform=`translate(${x}px,${y}px)`;
-    g.style.opacity=(p[t]==='X'?0.6:1)*(picked!==null && picked!==i ? 0.28 : 1); });
+    g.style.opacity=picked!==null && picked!==i ? (p[t]==='X' ? 0.5 : 0.32) : 1; });          // the others dim; less so on the dark street
   $('#blk').style.display=dark?'':'none';
   // following someone: lightly shade each room as they enter it, and shade it darker once they have gone back into it
   const vis=(picked===null || dark) ? {been:new Set(),back:new Set()} : visitsSoFar(picked,t);
   for(const id of RING){ const e=$('#tint-'+id), again=vis.back.has(id), on=vis.been.has(id);
-    e.style.fill=!on ? 'none' : again ? darker(COLORS[picked]) : COLORS[picked];
-    e.style.fillOpacity=again ? 0.7 : 0.3; e.style.stroke=again ? darker(COLORS[picked]) : 'none'; e.style.strokeWidth=again ? 3 : 0; }
+    e.style.fill=!on ? 'none' : again ? darker(FOLLOW) : FOLLOW;
+    e.style.fillOpacity=again ? 0.8 : 0.3; e.style.stroke=again ? darker(FOLLOW) : 'none'; e.style.strokeWidth=again ? 3 : 0; }
   // a trail is drawn only for the person being followed
   const tl=$('#trailL'); tl.innerHTML='';
-  if(!dark && picked!==null) P.paths.forEach((p,i)=>{ if(i!==picked) return; let prev=null;
+  if(!dark && picked!==null){ const p=P.paths[picked]; let prev=null;
     for(let k=0;k<=t;k++){ if(k===P.b || p[k]==='X'){ prev=null; continue; }
-      const q=slot(p[k],i);
-      if(prev && (prev[0]!==q[0]||prev[1]!==q[1])) tl.append(el('line',{x1:prev[0],y1:prev[1],x2:q[0],y2:q[1],stroke:COLORS[i],class:'trail focus'}));
-      if(k<t) tl.append(el('circle',{cx:q[0],cy:q[1],r:3,fill:COLORS[i],class:'tdot'}));
-      prev=q; } });
-  document.querySelectorAll('#chips button').forEach((b,k)=>b.classList.toggle('now',k===t));
+      const q=slot(p[k],picked);
+      if(prev && (prev[0]!==q[0]||prev[1]!==q[1])) tl.append(el('line',{x1:prev[0],y1:prev[1],x2:q[0],y2:q[1],stroke:FOLLOW,class:'trail'}));
+      if(k<t) tl.append(el('circle',{cx:q[0],cy:q[1],r:3,fill:FOLLOW,class:'tdot'}));
+      prev=q; } }
+  document.querySelectorAll('#stops button').forEach((b,k)=>b.classList.toggle('now',k===t));
 }
-function buildChips(){
-  let h=''; for(let k=0;k<T;k++) h+=`<button data-k="${k}" class="${k===P.b?'dark':''}">${k+1}<small>${k===P.b?'dark':'&nbsp;'}</small></button>`;
-  $('#chips').innerHTML=h;
+function buildStops(){
+  let h=''; for(let k=0;k<T;k++) h+=`<button data-k="${k}" class="${k===P.b?'dark':''}" aria-label="Step ${k+1}${k===P.b?', lights out':''}">${k+1}${k===P.b?'<small>dark</small>':''}</button>`;
+  $('#stops').innerHTML=h;
 }
 
-// ---- notes live on the people. Tap someone, on the map or in the row of people, to follow them and set their role.
+// ---- notes live on the people. Tap someone, on the map or in the row of people, to follow them and rule roles out.
+// A person wears their note: grey with no note, two colours with two roles left, one colour once their role is settled.
+// The same note shows above them as a small white tag: three dots (guard, visitor, burglar, left to right; a hollow dot
+// is a role ruled out), or the role's picture once it is settled. A person with no notes shows no tag.
 function drawMarks(i){
-  const m=$('#dot-'+i+' .marks'), n=notes[i]; m.innerHTML='';
-  const yes=['G','V','B'].find(r=>n[r]===2);
-  if(yes){ m.append(el('circle',{r:MR,class:'mark',stroke:RCOL[yes],style:'stroke-width:3.2'})); return; }
+  const g=$('#dot-'+i), m=g.querySelector('.marks'), n=notes[i]; m.innerHTML='';
+  const [top,bottom]=clothes(n); g.querySelector('.shirt').setAttribute('fill',top); g.querySelector('.trousers').setAttribute('fill',bottom);
+  const yes=decided(n);
+  if(yes){ m.append(el('circle',{cx:0,cy:-25.5,r:6.2,class:'notebg'}));
+    m.append(el('path',{d:ICON[yes],fill:RMAP[yes],'fill-rule':'evenodd',transform:'translate(-4.8,-30.3) scale(0.6)'})); return; }
   if(!n.G && !n.V && !n.B) return;
-  for(const r of ['G','V','B']) if(n[r]!==1) m.append(el('path',{d:arcPath(RARC[r][0],RARC[r][1]),class:'mark',stroke:RCOL[r]}));
+  m.append(el('rect',{x:-11,y:-29.5,width:22,height:8.5,rx:4.25,class:'notebg'}));
+  ['G','V','B'].forEach((r,k)=>{ const open=n[r]!==1;
+    m.append(el('circle',{cx:-6.6+k*6.6,cy:-25.25,r:open?2.6:2.1,fill:open?RMAP[r]:'none',stroke:open?'none':'#a9adb8','stroke-width':1})); });
+}
+function noteHTML(n){
+  const yes=decided(n);
+  if(yes) return icon(yes,11,RUI[yes]);
+  if(!n.G && !n.V && !n.B) return '';
+  return ['G','V','B'].map(r=>n[r]===1 ? '<i class="pip off"></i>' : `<i class="pip" style="background:${RUI[r]}"></i>`).join('');
 }
 function renderPeople(){
   let h='';
-  P.paths.forEach((_,d)=>{ const n=notes[d], yes=['G','V','B'].find(r=>n[r]===2), any=n.G||n.V||n.B;
-    const tag = yes ? `<b style="color:${RCOL[yes]}">${ROLE[yes]}</b>`
-              : any ? ['G','V','B'].filter(r=>n[r]!==1).map(r=>`<b style="color:${RCOL[r]}">${r}</b>`).join(' ') : '&nbsp;';
-    h+=`<button data-d="${d}" class="${picked===d?'now':''}" aria-label="Person ${D(d)}">${chip(d)}<small>${tag}</small></button>`; });
+  P.paths.forEach((_,d)=>{ h+=`<button data-d="${d}" class="${picked===d?'now':''}" aria-label="${D(d)}">${chip(d,decided(notes[d]))}<span class="nm">${D(d)}</span><span class="nt">${noteHTML(notes[d])}</span></button>`; });
   $('#people').innerHTML=h;
 }
 function renderPop(){
   const pop=$('#pop'); if(!P) return;
-  if(picked===null){ pop.innerHTML='<p class="key">Tap a person, on the map or in the row above, to follow them and note who they are.<br><i style="background:#1f4fd8"></i>guard<i style="background:#1c9a4b"></i>visitor<i style="background:#d11a2a"></i>burglar</p>'; return; }
-  const n=notes[picked], word=['maybe','no','yes'];
-  pop.innerHTML=`<div class="who">${chip(picked)}<span>Following ${D(picked)}. Shaded: rooms ${D(picked)} has been in. Darker: rooms ${D(picked)} went back into.</span><button id="popx" aria-label="Stop following">&times;</button></div><div class="roles3">`
-    +['G','V','B'].map(r=>`<button class="pbtn ${n[r]===1?'no':n[r]===2?'yes':''}" data-r="${r}" ${finished?'disabled':''} style="border-color:${RCOL[r]};${n[r]===2?'background:'+RCOL[r]:''}">${ROLE[r]}<small>${word[n[r]]}</small></button>`).join('')+'</div>';
+  if(picked===null){ pop.innerHTML='<div class="idle">Tap a person, on the map or in the row above, to follow them and note who they are.</div>'; return; }
+  // each role is ruled out ("no") or still possible ("maybe"); the last one left is who they are ("yes")
+  const n=notes[picked], only=decided(n), state=r=>n[r]===1 ? 'no' : only===r ? 'yes' : 'maybe';
+  pop.innerHTML=['G','V','B'].map(r=>`<button class="pbtn ${state(r)==='maybe'?'':state(r)}" data-r="${r}" ${finished?'disabled':''} aria-label="${D(picked)}: ${ROLE[r]}, ${state(r)}" style="border-color:${RUI[r]};${only===r?'background:'+RUI[r]:''}">${icon(r,18,only===r?'#0b0f18':RUI[r])}<span>${ROLE[r]}<small>${state(r)}</small></span></button>`).join('')
+    +'<button id="popx" aria-label="Stop following">&times;</button>';
 }
-// the report is read straight off the notes: "yes" on guard or burglar counts, and everyone else is a visitor
-function report(){ return P.paths.map((_,d)=>notes[d].G===2 ? 'G' : notes[d].B===2 ? 'B' : 'V'); }
+// the report is read straight off the notes: anyone settled as a guard or as the burglar counts, and everyone else is a visitor
+function report(){ return P.paths.map((_,d)=>{ const r=decided(notes[d]); return r==='G' || r==='B' ? r : 'V'; }); }
 function renderReport(){
   const r=report(), idx=[...P.paths.keys()], gs=idx.filter(d=>r[d]==='G'), bs=idx.filter(d=>r[d]==='B');
   $('#reportText').innerHTML=`<b>Guards (${gs.length} of ${P.g}):</b> ${gs.length?listD(gs):'none yet'}<br><b>Burglar:</b> ${bs.length?listD(bs):'none yet'}<br><span class="mut">Everyone else counts as a visitor.</span>`;
   const ready=gs.length===P.g && bs.length===1, b=$('#submit');
   b.disabled=finished || !ready;
-  b.textContent=finished ? 'Report sent' : ready ? 'Submit report' : `Mark ${P.g} guards and the burglar as "yes"`;
+  b.textContent=finished ? 'Report sent' : ready ? 'Submit report' : `Settle ${P.g} guards and the burglar first`;
+  if(finished || !ready) confirming=false;
+  b.style.display=confirming ? 'none' : ''; $('#confirm').classList.toggle('on',confirming);
+  $('#clear').disabled=finished || (!cleared && !notes.some(n=>n.G||n.V||n.B));
+  $('#clear').textContent=cleared ? 'Undo clear' : 'Clear notes';
   $('#hint').disabled=finished || hintsShown>=P.story.length;
   $('#hint').textContent=hintsShown?`Another hint (${hintsShown} used)`:'Hint';
   $('#hints').innerHTML=P.story.slice(0,hintsShown).map(x=>`<li>${x}</li>`).join('');
 }
 function renderNotes(){
   P.paths.forEach((_,i)=>drawMarks(i));
-  document.querySelectorAll('.dot').forEach(g=>g.classList.toggle('sel',+g.dataset.d===picked));
+  document.querySelectorAll('.fig').forEach(g=>g.classList.toggle('sel',+g.dataset.d===picked));
   renderPeople(); renderPop(); renderReport();
 }
 function follow(d){ picked = (d===null || d===picked) ? null : d; render(); renderNotes(); }
@@ -771,7 +953,7 @@ function renderResult(){
   box.innerHTML=`<h2>${result.ok?'Correct. Every role is right.':'Not right.'}</h2>
     <p class="mut">Time ${fmt(result.time)} · ${result.hints} hint${result.hints===1?'':'s'} · the shift change was at step ${P.s+1}</p>
     ${result.wrong.length?`<p><b>Where your report differed:</b></p><ul>${result.wrong.map(d=>`<li>You had ${D(d)} as ${as[result.report[d]]}. ${D(d)} was ${as[P.roles[d]]}.</li>`).join('')}</ul>`:''}
-    <div class="roles">${P.roles.map((r,d)=>`<span class="r">${chip(d)} ${ROLE[r]}</span>`).join('')}</div>
+    <div class="roles">${P.roles.map((r,d)=>`<span class="r">${chip(d,r)} ${D(d)}: ${ROLE[r]}</span>`).join('')}</div>
     <p><b>How it can be worked out:</b></p><ol>${P.story.map(x=>`<li>${x}</li>`).join('')}</ol>
     <button class="big blue" id="again">Next puzzle</button>`;
 }
@@ -787,31 +969,34 @@ function renderHistory(){
   box.innerHTML=h;
 }
 function renderBrief(){
-  $('#brief').innerHTML=`<b>Cast:</b> ${P.g} guards · ${P.v} visitors · 1 burglar`
-    +(P.fallback?`<br><span class="mut">No puzzle of exactly this difficulty turned up, so this one may be a little easier.</span>`:'');
+  $('#brief').innerHTML=`${P.g} guards · ${P.v} visitors · 1 burglar`
+    +(P.fallback?`<br>No puzzle of exactly this difficulty turned up, so this one may be a little easier.`:'');
 }
 
 function start(seed,diff,saved){
   stop();
   P=makePuzzle(seed,diff); while(!P) P=makePuzzle(++seed,diff);
-  t=0; picked=null; finished=false; result=null;
+  t=0; picked=null; finished=false; result=null; confirming=false; cleared=null;
   notes=saved&&saved.notes&&saved.notes.length===P.paths.length ? saved.notes : P.paths.map(()=>({G:0,V:0,B:0}));
+  // notes saved by an earlier build could say "yes" (2) to a role: that now means the other two are ruled out
+  notes=notes.map(n=>{ const yes=['G','V','B'].find(r=>n[r]===2); return yes ? {G:1,V:1,B:1,[yes]:0} : {G:n.G===1?1:0,V:n.V===1?1:0,B:n.B===1?1:0}; })
+             .map(n=>stillOpen(n).length ? n : {G:0,V:0,B:0});
   hintsShown=saved?saved.hintsShown||0:0; elapsed=saved?saved.elapsed||0:0; lastTick=Date.now();
   $('#diff').value=diff;
   if(hist.length) $('#rulesBox').open=false;            // the rules stay open until the first report has been sent
-  renderBrief(); buildMap(); buildChips(); render(); renderNotes(); renderResult(); renderHistory(); saveCurrent();
+  renderBrief(); buildMap(); buildStops(); render(); renderNotes(); renderResult(); renderHistory(); saveCurrent();
 }
-function newPuzzle(){ const diff=+$('#diff').value; save('heist4.diff',diff); start((Math.random()*4294967296)>>>0, diff, null); window.scrollTo(0,0); }
+function newPuzzle(){ const diff=+$('#diff').value; save('diff',diff); start((Math.random()*4294967296)>>>0, diff, null); window.scrollTo(0,0); }
 
 function submit(){
   if(finished) return;
   const r=report(), idx=[...P.paths.keys()];
   if(idx.filter(d=>r[d]==='G').length!==P.g || idx.filter(d=>r[d]==='B').length!==1) return;
-  finished=true; picked=null;
+  finished=true; picked=null; confirming=false; cleared=null;
   const wrong=idx.filter(d=>r[d]!==P.roles[d]);
   result={ok:!wrong.length,time:elapsed,hints:hintsShown,wrong,report:r};
   hist.push({ts:Date.now(),diff:P.diff,tier:P.tier,time:Math.round(elapsed),ok:result.ok,hints:hintsShown});
-  save('heist4.history',hist); saveCurrent();
+  save('history',hist); saveCurrent();
   render(); renderNotes(); renderResult(); renderHistory();
   $('#result').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -819,28 +1004,36 @@ function submit(){
 // ---- controls
 function go(k){ t=Math.max(0,Math.min(T-1,k)); render(); }
 function stop(){ clearInterval(timer); timer=null; $('#play').textContent='Play'; }
-$('#slider').addEventListener('input',e=>{ stop(); go(+e.target.value-1); });
 $('#prev').onclick=()=>{ stop(); go(t-1); };
 $('#next').onclick=()=>{ stop(); go(t+1); };
 $('#play').onclick=()=>{ if(timer) return stop(); if(t===T-1) go(0);
   $('#play').textContent='Stop'; timer=setInterval(()=>{ if(t>=T-1) return stop(); go(t+1); },750); };
-$('#chips').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ stop(); go(+b.dataset.k); } });
-document.addEventListener('keydown',e=>{ if(e.target.id==='slider') return;
+$('#stops').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ stop(); go(+b.dataset.k); } });
+document.addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT') return;
   if(e.key==='ArrowLeft'){ stop(); go(t-1); } if(e.key==='ArrowRight'){ stop(); go(t+1); } });
-$('#map').addEventListener('click',e=>{ const g=e.target.closest('.dot'); follow(g ? +g.dataset.d : null); });
+$('#map').addEventListener('click',e=>{ const g=e.target.closest('.fig'); follow(g ? +g.dataset.d : null); });
 $('#people').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) follow(+b.dataset.d); });
 $('#pop').addEventListener('click',e=>{
   if(e.target.closest('#popx')) return follow(null);
   const b=e.target.closest('.pbtn'); if(!b || picked===null || finished) return;
-  const r=b.dataset.r, n=notes[picked]; n[r]=(n[r]+1)%3;
-  if(n[r]===2) for(const o of ['G','V','B']) if(o!==r && n[o]===2) n[o]=0;          // a person holds one role
+  // a tap rules a role out, and a second tap brings it back. The last role left cannot be ruled out: it is who they are.
+  const r=b.dataset.r, n=notes[picked];
+  if(n[r]===1) n[r]=0; else if(stillOpen(n).length>1) n[r]=1; else return;
+  confirming=false; cleared=null;
   renderNotes(); saveCurrent(); });
-$('#submit').onclick=submit;
+// the report is sent in two taps, because there is only one
+$('#submit').onclick=()=>{ confirming=true; renderReport(); };
+$('#sendYes').onclick=submit;
+$('#sendNo').onclick=()=>{ confirming=false; renderReport(); };
+// "Clear notes" wipes every note; the same button then puts them back, until the next note is made
+$('#clear').onclick=()=>{ if(finished) return;
+  if(cleared){ notes=cleared; cleared=null; } else { cleared=notes; notes=P.paths.map(()=>({G:0,V:0,B:0})); }
+  confirming=false; renderNotes(); saveCurrent(); };
 $('#hint').onclick=()=>{ if(finished || hintsShown>=P.story.length) return; hintsShown++; renderReport(); saveCurrent(); };
 $('#new').onclick=newPuzzle;
 $('#welcomeOK').onclick=closeIntro;
 $('#result').addEventListener('click',e=>{ if(e.target.id==='again') newPuzzle(); });
-$('#hist').addEventListener('click',e=>{ if(e.target.id==='clearHist'){ hist=[]; save('heist4.history',hist); renderHistory(); } });
+$('#hist').addEventListener('click',e=>{ if(e.target.id==='clearHist'){ hist=[]; save('history',hist); renderHistory(); } });
 
 // ---- clock: only counts while the page is showing and the puzzle is open
 setInterval(()=>{ const now=Date.now();
@@ -850,12 +1043,11 @@ setInterval(()=>{ const now=Date.now();
 
 // ---- go
 const KNOWN=knownCases();
-$('#foot').textContent=`Version 2 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass.`;
+$('#foot').textContent=`Version 4 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass.`;
 $('#welcome').classList.toggle('on',introOpen);
-const saved=load('heist4.current'), pref=load('heist4.diff');
+const saved=load('current'), pref=load('diff');
 if(saved && CASTS[saved.diff]) start(saved.seed,saved.diff,saved);
 else { $('#diff').value=CASTS[pref]?pref:1; newPuzzle(); }
 </script>
 </body>
 </html>
-
