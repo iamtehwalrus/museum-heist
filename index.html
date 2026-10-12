@@ -7,9 +7,11 @@
 <meta name="description" content="A logic puzzle. Watch ten steps in a museum and work out who the guards and the burglar are.">
 <title>Museum Heist</title>
 <style>
-/* Version 6, published 2026-10-12: taken from Prototypes\20261012 diorama-10.html. Since Version 5 it has gained a
-   "How to Play" screen rewritten by Jeff, hints worded as the rules are, taller step buttons and controls, and a cast
-   list and door labels that are easier to read. Earlier versions are kept in Game\Versions. */
+/* Version 7, published 2026-10-12: taken from Prototypes\20261012 diorama-11.html. Since Version 6 the foot of the
+   Settings screen shows only the version number unless a self-check fails. Earlier versions are kept in Game\Versions. */
+/* Diorama 11: diorama 10 with one change (Pending Changes.md, item 49, built 2026-10-12). The foot of the Settings
+   screen shows only the version while every self-check passes; the line about rule checks and doors appears only if
+   one fails. The rules, generator and solver are unchanged. What diorama 10 was: */
 /* Diorama 10: diorama 9 with the "How to Play" screen rewritten by Jeff (Pending Changes.md, items 47 and 48, built
    2026-10-12): the story and the goal, then "Movement Rules", then "Instructions". Hints and the deduction say guards
    "enter or leave the building", as his guard rule does. The rules, generator and solver work as before: only the
@@ -1519,7 +1521,7 @@ function renderSettings(){
   $('#vSettings').innerHTML=BACK+'<h2>Settings</h2>'
     +row('Animations','People walk from step to step, and the night plays back after your report. Off makes every move instant.','anim',animOn)
     +row('Sound','Footsteps, the lights, your notes and the verdict.','sound',soundOn)
-    +`<p class="small">Version 6 · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass. Doors: ${DOORWAYS.filter(x=>x.pass).length} of ${DOORWAYS.length} ways between rooms can be walked.</p>`;
+    +`<p class="small">Version 7${KNOWN.every(x=>x.pass) && DOORWAYS.every(x=>x.pass) ? '' : ` · Rule checks: ${KNOWN.filter(x=>x.pass).length} of ${KNOWN.length} known cases pass. Doors: ${DOORWAYS.filter(x=>x.pass).length} of ${DOORWAYS.length} ways between rooms can be walked.`}</p>`;
 }
 // open How to play, Your solves or Settings, remembering where to go back to
 function openScreen(which){
